@@ -73,137 +73,27 @@ const INITIAL_PARTS = [
   }
 ];
 
-const INITIAL_INWARDS = [
-  {
-    id: 1,
-    challan_no: "J/4518",
-    challan_date: "2026-11-05",
-    party_id: 1,
-    party_name: "AJK FORGE PRIVATE LIMITED",
-    party_gstin: "24AAGCA0436P1ZN",
-    party_address: "PLOT NO. 10 A SURVEY NO. 197 NEAR: MICROMELT PVT.LTD.VERAVAL (SHAPAR), RAJKOT.",
-    party_phone: "9427867368 / 9313546921",
-    party_state_code: "24-Gujarat",
-    vehicle_no: "GJ03AV0349",
-    eway_bill_no: "652216743923",
-    process_required: "BROACHING",
-    remarks: "Urgent batch for machining",
-    total_quantity: 1944.0,
-    total_amount: 159408.0,
-    items: [
-      {
-        id: 1,
-        inward_id: 1,
-        part_id: 1,
-        part_no: "SG2639BRMC",
-        part_description: "Gear Shaft Machined Component",
-        grade: "20MNCR5",
-        heat_no: "J853550",
-        quantity: 1944.0,
-        rate: 82.0,
-        amount: 159408.0,
-        unit: "NOS",
-        default_hsn: "73261910"
-      }
-    ]
-  },
-  {
-    id: 2,
-    challan_no: "MAC/IN-102",
-    challan_date: "2026-11-06",
-    party_id: 2,
-    party_name: "MARUTI AUTO COMPONENTS",
-    party_gstin: "24AAECM4189B1Z2",
-    party_address: "GIDC PHASE II, PLOT NO. 45/A, METODA, RAJKOT - 360021",
-    party_phone: "9825012345",
-    party_state_code: "24-Gujarat",
-    vehicle_no: "GJ03BT8841",
-    eway_bill_no: "681190234120",
-    process_required: "CNC TURNING & FACING",
-    remarks: "Standard jobwork lot",
-    total_quantity: 1150.0,
-    total_amount: 78000.0,
-    items: [
-      {
-        id: 2,
-        inward_id: 2,
-        part_id: 2,
-        part_no: "FL-4401-PIN",
-        part_description: "Flange Pinion Pin Bush",
-        grade: "EN8D",
-        heat_no: "H-9921",
-        quantity: 800.0,
-        rate: 45.0,
-        amount: 36000.0,
-        unit: "NOS",
-        default_hsn: "84834000"
-      },
-      {
-        id: 3,
-        inward_id: 2,
-        part_id: 3,
-        part_no: "HUB-982-FR",
-        part_description: "Front Hub Precision Spindle",
-        grade: "EN19",
-        heat_no: "H-7740",
-        quantity: 350.0,
-        rate: 120.0,
-        amount: 42000.0,
-        unit: "NOS",
-        default_hsn: "87082900"
-      }
-    ]
-  }
-];
+const INITIAL_INWARDS = [];
 
-const INITIAL_OUTWARDS = [
-  {
-    id: 1,
-    challan_no: "SV/DC-001",
-    challan_date: "2026-11-07",
-    party_id: 1,
-    party_name: "AJK FORGE PRIVATE LIMITED",
-    party_gstin: "24AAGCA0436P1ZN",
-    party_address: "PLOT NO. 10 A SURVEY NO. 197 NEAR: MICROMELT PVT.LTD.VERAVAL (SHAPAR), RAJKOT.",
-    party_phone: "9427867368 / 9313546921",
-    party_state_code: "24-Gujarat",
-    vehicle_no: "GJ03AV0349",
-    eway_bill_no: "690123849102",
-    process_carried_out: "BROACHING COMPLETED",
-    remarks: "First lot machined and dispatched",
-    total_quantity: 1000.0,
-    total_machine_rejection: 2.0,
-    total_forging_rejection: 2.0,
-    total_waste: 4.0,
-    total_amount: 82000.0,
-    items: [
-      {
-        id: 1,
-        outward_id: 1,
-        part_id: 1,
-        part_no: "SG2639BRMC",
-        part_description: "Gear Shaft Machined Component",
-        default_grade: "20MNCR5",
-        hsn_code: "73261910",
-        heat_no: "J853550",
-        quantity: 1000.0,
-        machine_rejection: 2.0,
-        forging_rejection: 2.0,
-        waste_quantity: 4.0,
-        rate: 82.0,
-        amount: 82000.0,
-        unit: "NOS"
-      }
-    ]
-  }
-];
+const INITIAL_OUTWARDS = [];
 
 class LocalDataStore {
   constructor() {
+    if (!localStorage.getItem('sv_cleared_entries_v1')) {
+      localStorage.removeItem('sv_inwards');
+      localStorage.removeItem('sv_outwards');
+      localStorage.setItem('sv_cleared_entries_v1', 'true');
+    }
     this.parties = JSON.parse(localStorage.getItem('sv_parties')) || INITIAL_PARTIES;
     this.parts = JSON.parse(localStorage.getItem('sv_parts')) || INITIAL_PARTS;
-    this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || INITIAL_INWARDS;
-    this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || INITIAL_OUTWARDS;
+    this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || [];
+    this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || [];
+    this.save();
+  }
+
+  clearAllEntries() {
+    this.inwards = [];
+    this.outwards = [];
     this.save();
   }
 

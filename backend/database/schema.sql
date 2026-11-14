@@ -110,24 +110,4 @@ INSERT INTO `parts` (`id`, `part_no`, `description`, `grade`, `hsn_code`, `defau
 (4, 'VL-ROD-32', 'Connecting Valve Rod', 'SS304', '73269099', 65.50, 'NOS')
 ON DUPLICATE KEY UPDATE `part_no`=VALUES(`part_no`);
 
--- Sample Inward Challan matching real document J/4518
-INSERT INTO `inward_challans` (`id`, `challan_no`, `challan_date`, `party_id`, `vehicle_no`, `eway_bill_no`, `process_required`, `remarks`) VALUES
-(1, 'J/4518', '2026-11-05', 1, 'GJ03AV0349', '652216743923', 'BROACHING', 'Urgent batch for machining'),
-(2, 'MAC/IN-102', '2026-11-06', 2, 'GJ03BT8841', '681190234120', 'CNC TURNING & FACING', 'Standard delivery')
-ON DUPLICATE KEY UPDATE `challan_no`=VALUES(`challan_no`);
-
-INSERT INTO `inward_items` (`id`, `inward_id`, `part_id`, `grade`, `heat_no`, `quantity`, `rate`, `amount`) VALUES
-(1, 1, 1, '20MNCR5', 'J853550', 1944.000, 82.00, 159408.00),
-(2, 2, 2, 'EN8D', 'H-9921', 800.000, 45.00, 36000.00),
-(3, 2, 3, 'EN19', 'H-7740', 350.000, 120.00, 42000.00)
-ON DUPLICATE KEY UPDATE `id`=VALUES(`id`);
-
--- Sample Outward Challan (Dispatched 1000 pcs of SG2639BRMC back to AJK Forge)
-INSERT INTO `outward_challans` (`id`, `challan_no`, `challan_date`, `party_id`, `vehicle_no`, `eway_bill_no`, `process_carried_out`, `remarks`) VALUES
-(1, 'SV/DC-001', '2026-11-07', 1, 'GJ03AV0349', '690123849102', 'BROACHING COMPLETED', 'Part 1 batch completed and dispatched')
-ON DUPLICATE KEY UPDATE `challan_no`=VALUES(`challan_no`);
-
-INSERT INTO `outward_items` (`id`, `outward_id`, `part_id`, `heat_no`, `quantity`, `machine_rejection`, `forging_rejection`, `waste_quantity`, `rate`, `amount`) VALUES
-(1, 1, 1, 'J853550', 1000.000, 2.000, 2.000, 4.000, 82.00, 82000.00)
-ON DUPLICATE KEY UPDATE `id`=VALUES(`id`);
 
