@@ -10,10 +10,11 @@ import {
   Database,
   CheckCircle2,
   AlertTriangle,
-  RotateCw
+  RotateCw,
+  Lock
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefreshBackend, onRunSetup }) {
+export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefreshBackend, onRunSetup, onLock }) {
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMessage, setSetupMessage] = useState(null);
 
@@ -125,6 +126,17 @@ export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefre
               <Database className="w-3.5 h-3.5 text-sky-400" />
               <span>{setupLoading ? "Running DB Setup..." : "DB Setup"}</span>
             </button>
+
+            {onLock && (
+              <button
+                onClick={onLock}
+                title="Lock Terminal"
+                className="flex items-center space-x-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 transition"
+              >
+                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Lock</span>
+              </button>
+            )}
           </div>
 
         </div>

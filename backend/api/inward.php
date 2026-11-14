@@ -172,9 +172,7 @@ switch ($method) {
                 ':process_required' => !empty($data['process_required']) ? trim($data['process_required']) : 'BROACHING / CNC TURNING',
                 ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null
             ]);
-
             $inwardId = $conn->lastInsertId();
-
             // Insert line items
             $itemStmt = $conn->prepare("
                 INSERT INTO inward_items (inward_id, part_id, grade, heat_no, quantity, rate, amount)

@@ -8,9 +8,13 @@ import OutwardChallans from './pages/OutwardChallans';
 import Parties from './pages/Parties';
 import Parts from './pages/Parts';
 import ChallanPrintModal from './components/ChallanPrintModal';
+import PinLockScreen from './components/PinLockScreen';
 import { api } from './services/api';
 
 export default function App() {
+  const [isLocked, setIsLocked] = useState(() => {
+    return sessionStorage.getItem('sv_system_unlocked') !== 'true';
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [backendStatus, setBackendStatus] = useState({ online: false, message: 'Checking...' });
   const [dashboardData, setDashboardData] = useState(null);
@@ -60,6 +64,20 @@ export default function App() {
     checkBackend();
   };
 
+  const handleUnlock = () => {
+    sessionStorage.setItem('sv_system_unlocked', 'true');
+    setIsLocked(false);
+  };
+
+  const handleLock = () => {
+    sessionStorage.removeItem('sv_system_unlocked');
+    setIsLocked(true);
+  };
+
+  if (isLocked) {
+    return <PinLockScreen onUnlock={handleUnlock} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100/70 flex flex-col font-sans">
 
@@ -83,6 +101,7 @@ export default function App() {
           await loadDashboard();
           return res;
         }}
+        onLock={handleLock}
       />
 
       {/* Main Content Area */}
