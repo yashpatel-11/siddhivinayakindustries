@@ -1,0 +1,2 @@
+the system is for CNC industries workshop, it should have inward document, outward document the stock should get maintained part wise, party wise, and the ui should be easy to use.
+I want to manage stock in the system -> by part wise -> by party wise -> 
