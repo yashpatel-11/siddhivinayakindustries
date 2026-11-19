@@ -117,18 +117,18 @@ export default function StockManagement({ onNavigateWithData }) {
     let headers = [];
 
     if (subTab === 'part_wise') {
-      headers = ['Part No', 'Description', 'Grade', 'HSN Code', 'Inward Qty', 'Outward Qty', 'Waste Qty', 'Current Stock', 'Unit'];
+      headers = ['Part No', 'Description', 'Grade', 'HSN Code', 'Inward Qty', 'Outward Qty', 'Machine Rej', 'Forging Rej', 'Current Stock', 'Unit'];
       rows = filteredPartWise.map(p => [
         `"${p.part_no}"`, `"${p.description}"`, `"${p.grade || ''}"`, `"${p.hsn_code || ''}"`,
-        p.total_inward, p.total_outward, p.total_waste, p.current_stock, `"${p.unit || 'NOS'}"`
+        p.total_inward, p.total_outward, p.total_machine_rejection || 0, p.total_forging_rejection || 0, p.current_stock, `"${p.unit || 'NOS'}"`
       ]);
     } else if (subTab === 'party_wise') {
-      headers = ['Party Name', 'Part No', 'Description', 'Inward Qty', 'Outward Qty', 'Current Stock'];
+      headers = ['Party Name', 'Part No', 'Description', 'Inward Qty', 'Outward Qty', 'Machine Rej', 'Forging Rej', 'Current Stock'];
       filteredPartyWise.forEach(party => {
         party.parts?.forEach(pt => {
           rows.push([
             `"${party.name}"`, `"${pt.part_no}"`, `"${pt.description}"`,
-            pt.inward_qty, pt.outward_qty, pt.current_stock
+            pt.inward_qty, pt.outward_qty, pt.machine_rej_qty || 0, pt.forging_rej_qty || 0, pt.current_stock
           ]);
         });
       });
@@ -345,7 +345,8 @@ export default function StockManagement({ onNavigateWithData }) {
                     <th className="py-3 px-4 text-center">HSN Code</th>
                     <th className="py-3 px-4 text-right">Inward Qty</th>
                     <th className="py-3 px-4 text-right">Dispatched Qty</th>
-                    <th className="py-3 px-4 text-right">Scrap / Waste</th>
+                    <th className="py-3 px-4 text-right">Machine Rej</th>
+                    <th className="py-3 px-4 text-right">Forging Rej</th>
                     <th className="py-3 px-4 text-right font-bold text-slate-900">Current Stock</th>
                     <th className="py-3 px-4 text-center">Status</th>
                     <th className="py-3 px-4 text-center">Action</th>
@@ -357,7 +358,8 @@ export default function StockManagement({ onNavigateWithData }) {
                       const stock = Number(part.current_stock || 0);
                       const inQty = Number(part.total_inward || 0);
                       const outQty = Number(part.total_outward || 0);
-                      const wasteQty = Number(part.total_waste || 0);
+                      const mRej = Number(part.total_machine_rejection || 0);
+                      const fRej = Number(part.total_forging_rejection || 0);
                       const isPositive = stock > 0;
 
                       return (
@@ -381,7 +383,10 @@ export default function StockManagement({ onNavigateWithData }) {
                             -{outQty.toLocaleString()} <span className="text-xs font-sans text-slate-500 font-normal">{part.unit || 'NOS'}</span>
                           </td>
                           <td className="py-3.5 px-4 text-right font-mono text-amber-700 tabular-nums">
-                            {wasteQty > 0 ? `-${wasteQty.toLocaleString()}` : '0'}
+                            {mRej > 0 ? `-${mRej.toLocaleString()}` : '0'}
+                          </td>
+                          <td className="py-3.5 px-4 text-right font-mono text-rose-700 tabular-nums">
+                            {fRej > 0 ? `-${fRej.toLocaleString()}` : '0'}
                           </td>
                           <td className="py-3.5 px-4 text-right font-mono font-bold text-sm tabular-nums">
                             <span className={isPositive ? 'text-slate-900' : 'text-slate-400'}>
@@ -427,7 +432,7 @@ export default function StockManagement({ onNavigateWithData }) {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="9" className="py-8 text-center text-slate-400 text-sm">
+                      <td colSpan="10" className="py-8 text-center text-slate-400 text-sm">
                         No parts matching search criteria.
                       </td>
                     </tr>
@@ -500,7 +505,8 @@ export default function StockManagement({ onNavigateWithData }) {
                             <th className="py-2.5 px-3 text-center">Grade</th>
                             <th className="py-2.5 px-3 text-right">Inward Material</th>
                             <th className="py-2.5 px-3 text-right">Dispatched</th>
-                            <th className="py-2.5 px-3 text-right">Scrap / Rejection</th>
+                            <th className="py-2.5 px-3 text-right">Machine Rej</th>
+                            <th className="py-2.5 px-3 text-right">Forging Rej</th>
                             <th className="py-2.5 px-3 text-right font-semibold">Stock Balance</th>
                             <th className="py-2.5 px-3 text-center">Quick Dispatch</th>
                           </tr>
@@ -521,7 +527,8 @@ export default function StockManagement({ onNavigateWithData }) {
                                   <td className="py-3 px-3 text-center font-mono text-xs text-slate-700">{pt.grade || '-'}</td>
                                   <td className="py-3 px-3 text-right font-mono text-emerald-700 tabular-nums">+{Number(pt.inward_qty).toLocaleString()}</td>
                                   <td className="py-3 px-3 text-right font-mono text-indigo-700 tabular-nums">-{Number(pt.outward_qty).toLocaleString()}</td>
-                                  <td className="py-3 px-3 text-right font-mono text-amber-700 tabular-nums">{pt.waste_qty > 0 ? `-${Number(pt.waste_qty).toLocaleString()}` : '0'}</td>
+                                  <td className="py-3 px-3 text-right font-mono text-amber-700 tabular-nums">{Number(pt.machine_rej_qty || 0) > 0 ? `-${Number(pt.machine_rej_qty).toLocaleString()}` : '0'}</td>
+                                  <td className="py-3 px-3 text-right font-mono text-rose-700 tabular-nums">{Number(pt.forging_rej_qty || 0) > 0 ? `-${Number(pt.forging_rej_qty).toLocaleString()}` : '0'}</td>
                                   <td className="py-3 px-3 text-right font-mono font-bold text-slate-900 tabular-nums">
                                     {cur.toLocaleString()} <span className="text-xs font-sans text-slate-500 font-normal">{pt.unit || 'NOS'}</span>
                                   </td>
@@ -557,7 +564,7 @@ export default function StockManagement({ onNavigateWithData }) {
                                 {/* Expanded Inward Challans Sub-table */}
                                 {isExpanded && (
                                   <tr className="bg-slate-50/75 border-b border-indigo-100">
-                                    <td colSpan="8" className="p-3 pl-6">
+                                    <td colSpan="9" className="p-3 pl-6">
                                       <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs space-y-2">
                                         <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
                                           <span>Inward Challan Lots for {pt.part_no}:</span>
@@ -667,7 +674,8 @@ export default function StockManagement({ onNavigateWithData }) {
                   <th className="py-3 px-4 text-center">Grade</th>
                   <th className="py-3 px-4 text-right">Inward Qty</th>
                   <th className="py-3 px-4 text-right">Dispatched Qty</th>
-                  <th className="py-3 px-4 text-right">Scrap</th>
+                  <th className="py-3 px-4 text-right">Machine Rej</th>
+                  <th className="py-3 px-4 text-right">Forging Rej</th>
                   <th className="py-3 px-4 text-right font-bold text-slate-900">Current Stock</th>
                 </tr>
               </thead>
@@ -683,7 +691,8 @@ export default function StockManagement({ onNavigateWithData }) {
                       <td className="py-3.5 px-4 text-center font-mono text-xs text-slate-600">{row.grade || '-'}</td>
                       <td className="py-3.5 px-4 text-right font-mono text-emerald-700 tabular-nums">+{Number(row.total_inward).toLocaleString()}</td>
                       <td className="py-3.5 px-4 text-right font-mono text-indigo-700 tabular-nums">-{Number(row.total_outward).toLocaleString()}</td>
-                      <td className="py-3.5 px-4 text-right font-mono text-amber-700 tabular-nums">{row.total_waste > 0 ? `-${Number(row.total_waste).toLocaleString()}` : '0'}</td>
+                      <td className="py-3.5 px-4 text-right font-mono text-amber-700 tabular-nums">{Number(row.total_machine_rejection || 0) > 0 ? `-${Number(row.total_machine_rejection).toLocaleString()}` : '0'}</td>
+                      <td className="py-3.5 px-4 text-right font-mono text-rose-700 tabular-nums">{Number(row.total_forging_rejection || 0) > 0 ? `-${Number(row.total_forging_rejection).toLocaleString()}` : '0'}</td>
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 text-sm tabular-nums">
                         {Number(row.current_stock).toLocaleString()} <span className="text-xs font-sans text-slate-500 font-normal">{row.unit || 'NOS'}</span>
                       </td>
@@ -691,7 +700,7 @@ export default function StockManagement({ onNavigateWithData }) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="py-8 text-center text-slate-400 text-sm">
+                    <td colSpan="8" className="py-8 text-center text-slate-400 text-sm">
                       No stock records match the selected filter.
                     </td>
                   </tr>
@@ -735,7 +744,8 @@ export default function StockManagement({ onNavigateWithData }) {
                     <th className="py-3 px-4">Process / Vehicle</th>
                     <th className="py-3 px-4 text-right">Inward (+)</th>
                     <th className="py-3 px-4 text-right">Outward (-)</th>
-                    <th className="py-3 px-4 text-right">Scrap</th>
+                    <th className="py-3 px-4 text-right">Machine Rej</th>
+                    <th className="py-3 px-4 text-right">Forging Rej</th>
                     <th className="py-3 px-4 text-right font-bold text-slate-900">Running Balance</th>
                   </tr>
                 </thead>
@@ -767,7 +777,10 @@ export default function StockManagement({ onNavigateWithData }) {
                             {tx.qty_out > 0 ? `-${Number(tx.qty_out).toLocaleString()}` : '-'}
                           </td>
                           <td className="py-3 px-4 text-right text-amber-700 tabular-nums">
-                            {tx.qty_waste > 0 ? `-${Number(tx.qty_waste).toLocaleString()}` : '-'}
+                            {Number(tx.qty_machine_rej || 0) > 0 ? `-${Number(tx.qty_machine_rej).toLocaleString()}` : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-right text-rose-700 tabular-nums">
+                            {Number(tx.qty_forging_rej || 0) > 0 ? `-${Number(tx.qty_forging_rej).toLocaleString()}` : '-'}
                           </td>
                           <td className="py-3 px-4 text-right font-bold text-slate-900 text-sm tabular-nums">
                             {Number(tx.running_balance).toLocaleString()}
@@ -777,7 +790,7 @@ export default function StockManagement({ onNavigateWithData }) {
                     })
                   ) : (
                     <tr>
-                      <td colSpan="10" className="py-8 text-center text-slate-400 text-sm">
+                      <td colSpan="11" className="py-8 text-center text-slate-400 text-sm">
                         No transactions found for the selected party or part.
                       </td>
                     </tr>

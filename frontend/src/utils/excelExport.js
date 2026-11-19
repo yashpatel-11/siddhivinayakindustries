@@ -111,7 +111,8 @@ export function exportFullInventoryExcel(partWiseData = [], partyWiseData = []) 
         'Material Grade': pt.grade || '-',
         'Total Inward': Number(pt.inward_qty || 0),
         'Dispatched': Number(pt.outward_qty || 0),
-        'Scrap / Waste': Number(pt.waste_qty || 0),
+        'Machine Rej': Number(pt.machine_rej_qty || 0),
+        'Forging Rej': Number(pt.forging_rej_qty || 0),
         'Current Stock (NOS)': Number(pt.current_stock || 0),
         'Unit': pt.unit || 'NOS'
       });
@@ -121,7 +122,7 @@ export function exportFullInventoryExcel(partWiseData = [], partyWiseData = []) 
     const ws1 = XLSX.utils.json_to_sheet(partyRows);
     ws1['!cols'] = [
       { wch: 32 }, { wch: 20 }, { wch: 18 }, { wch: 30 },
-      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 8 }
+      { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 8 }
     ];
     XLSX.utils.book_append_sheet(workbook, ws1, "Party-wise Breakdown");
   }
@@ -134,7 +135,8 @@ export function exportFullInventoryExcel(partWiseData = [], partyWiseData = []) 
     'HSN Code': p.hsn_code || '73261910',
     'Total Inward (NOS)': Number(p.total_inward || 0),
     'Total Dispatched (NOS)': Number(p.total_outward || 0),
-    'Total Scrap (NOS)': Number(p.total_waste || 0),
+    'Machine Rej (NOS)': Number(p.total_machine_rejection || 0),
+    'Forging Rej (NOS)': Number(p.total_forging_rejection || 0),
     'Current Stock Balance': Number(p.current_stock || 0),
     'Parties Count': p.parties_count || 1,
     'Unit': p.unit || 'NOS'
@@ -143,7 +145,7 @@ export function exportFullInventoryExcel(partWiseData = [], partyWiseData = []) 
     const ws2 = XLSX.utils.json_to_sheet(partRows);
     ws2['!cols'] = [
       { wch: 18 }, { wch: 32 }, { wch: 14 }, { wch: 14 },
-      { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 20 }, { wch: 14 }, { wch: 8 }
+      { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 14 }, { wch: 8 }
     ];
     XLSX.utils.book_append_sheet(workbook, ws2, "Part-wise Summary");
   }

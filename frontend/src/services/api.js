@@ -186,11 +186,15 @@ class LocalDataStore {
 
       let outQty = 0;
       let wasteQty = 0;
+      let machineRejQty = 0;
+      let forgingRejQty = 0;
       this.outwards.forEach(out => {
         out.items.forEach(it => {
           if (it.part_id === part.id) {
             outQty += Number(it.quantity || 0);
             wasteQty += Number(it.waste_quantity || 0);
+            machineRejQty += Number(it.machine_rejection || 0);
+            forgingRejQty += Number(it.forging_rejection || 0);
           }
         });
       });
@@ -208,6 +212,8 @@ class LocalDataStore {
         total_inward: inQty,
         total_outward: outQty,
         total_waste: wasteQty,
+        total_machine_rejection: machineRejQty,
+        total_forging_rejection: forgingRejQty,
         current_stock: current,
         parties_count: partySet.size
       };
@@ -231,6 +237,8 @@ class LocalDataStore {
               inward_qty: 0,
               outward_qty: 0,
               waste_qty: 0,
+              machine_rej_qty: 0,
+              forging_rej_qty: 0,
               current_stock: 0
             };
           }
@@ -251,11 +259,15 @@ class LocalDataStore {
               inward_qty: 0,
               outward_qty: 0,
               waste_qty: 0,
+              machine_rej_qty: 0,
+              forging_rej_qty: 0,
               current_stock: 0
             };
           }
           partMap[it.part_id].outward_qty += Number(it.quantity || 0);
           partMap[it.part_id].waste_qty += Number(it.waste_quantity || 0);
+          partMap[it.part_id].machine_rej_qty += Number(it.machine_rejection || 0);
+          partMap[it.part_id].forging_rej_qty += Number(it.forging_rejection || 0);
         });
       });
 
@@ -293,6 +305,8 @@ class LocalDataStore {
           total_inward: part.inward_qty,
           total_outward: part.outward_qty,
           total_waste: part.waste_qty,
+          total_machine_rejection: part.machine_rej_qty || 0,
+          total_forging_rejection: part.forging_rej_qty || 0,
           current_stock: part.current_stock
         });
       });
@@ -321,6 +335,8 @@ class LocalDataStore {
           qty_in: Number(it.quantity),
           qty_out: 0,
           qty_waste: 0,
+          qty_machine_rej: 0,
+          qty_forging_rej: 0,
           vehicle_no: inv.vehicle_no,
           process_name: inv.process_required
         });
@@ -346,6 +362,8 @@ class LocalDataStore {
           qty_in: 0,
           qty_out: Number(it.quantity),
           qty_waste: Number(it.waste_quantity || 0),
+          qty_machine_rej: Number(it.machine_rejection || 0),
+          qty_forging_rej: Number(it.forging_rejection || 0),
           vehicle_no: out.vehicle_no,
           process_name: out.process_carried_out
         });

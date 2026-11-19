@@ -22,6 +22,8 @@ switch ($type) {
                 COALESCE(inward_summary.total_inward, 0) as total_inward,
                 COALESCE(outward_summary.total_outward, 0) as total_outward,
                 COALESCE(outward_summary.total_waste, 0) as total_waste,
+                COALESCE(outward_summary.total_machine_rejection, 0) as total_machine_rejection,
+                COALESCE(outward_summary.total_forging_rejection, 0) as total_forging_rejection,
                 (COALESCE(inward_summary.total_inward, 0) - COALESCE(outward_summary.total_outward, 0) - COALESCE(outward_summary.total_waste, 0)) as current_stock,
                 COALESCE(inward_summary.distinct_parties, 0) as parties_count
             FROM parts p
@@ -38,7 +40,9 @@ switch ($type) {
                 SELECT 
                     oi.part_id, 
                     SUM(oi.quantity) as total_outward,
-                    SUM(oi.waste_quantity) as total_waste
+                    SUM(oi.waste_quantity) as total_waste,
+                    SUM(oi.machine_rejection) as total_machine_rejection,
+                    SUM(oi.forging_rejection) as total_forging_rejection
                 FROM outward_items oi
                 JOIN outward_challans oc ON oi.outward_id = oc.id
                 GROUP BY oi.part_id
@@ -80,7 +84,9 @@ switch ($type) {
                 oc.party_id,
                 oi.part_id,
                 SUM(oi.quantity) as outward_qty,
-                SUM(oi.waste_quantity) as waste_qty
+                SUM(oi.waste_quantity) as waste_qty,
+                SUM(oi.machine_rejection) as machine_rej_qty,
+                SUM(oi.forging_rejection) as forging_rej_qty
             FROM outward_items oi
             JOIN outward_challans oc ON oi.outward_id = oc.id
             GROUP BY oc.party_id, oi.part_id
@@ -101,6 +107,8 @@ switch ($type) {
                 'inward_qty' => (float)$row['inward_qty'],
                 'outward_qty' => 0.0,
                 'waste_qty' => 0.0,
+                'machine_rej_qty' => 0.0,
+                'forging_rej_qty' => 0.0,
                 'current_stock' => (float)$row['inward_qty']
             ];
         }
@@ -110,6 +118,8 @@ switch ($type) {
             if (isset($partyPartMap[$key])) {
                 $partyPartMap[$key]['outward_qty'] += (float)$row['outward_qty'];
                 $partyPartMap[$key]['waste_qty'] += (float)$row['waste_qty'];
+                $partyPartMap[$key]['machine_rej_qty'] += (float)$row['machine_rej_qty'];
+                $partyPartMap[$key]['forging_rej_qty'] += (float)$row['forging_rej_qty'];
                 $partyPartMap[$key]['current_stock'] -= ((float)$row['outward_qty'] + (float)$row['waste_qty']);
             }
         }
@@ -186,7 +196,9 @@ switch ($type) {
                 oc.party_id,
                 oi.part_id,
                 SUM(oi.quantity) as total_outward,
-                SUM(oi.waste_quantity) as total_waste
+                SUM(oi.waste_quantity) as total_waste,
+                SUM(oi.machine_rejection) as total_machine_rejection,
+                SUM(oi.forging_rejection) as total_forging_rejection
             FROM outward_items oi
             JOIN outward_challans oc ON oi.outward_id = oc.id
             " . (count($whereOutward) ? "WHERE " . implode(" AND ", $whereOutward) : "") . "
@@ -201,7 +213,9 @@ switch ($type) {
             $key = $or['party_id'] . '_' . $or['part_id'];
             $outMap[$key] = [
                 'total_outward' => (float)$or['total_outward'],
-                'total_waste' => (float)$or['total_waste']
+                'total_waste' => (float)$or['total_waste'],
+                'total_machine_rejection' => (float)$or['total_machine_rejection'],
+                'total_forging_rejection' => (float)$or['total_forging_rejection']
             ];
         }
 
@@ -210,6 +224,8 @@ switch ($type) {
             $key = $ir['party_id'] . '_' . $ir['part_id'];
             $outQty = isset($outMap[$key]) ? $outMap[$key]['total_outward'] : 0.0;
             $wasteQty = isset($outMap[$key]) ? $outMap[$key]['total_waste'] : 0.0;
+            $mRej = isset($outMap[$key]) ? $outMap[$key]['total_machine_rejection'] : 0.0;
+            $fRej = isset($outMap[$key]) ? $outMap[$key]['total_forging_rejection'] : 0.0;
             $inQty = (float)$ir['total_inward'];
             $current = $inQty - $outQty - $wasteQty;
 
@@ -224,6 +240,8 @@ switch ($type) {
                 'total_inward' => $inQty,
                 'total_outward' => $outQty,
                 'total_waste' => $wasteQty,
+                'total_machine_rejection' => $mRej,
+                'total_forging_rejection' => $fRej,
                 'current_stock' => $current
             ];
         }
@@ -259,6 +277,8 @@ switch ($type) {
                 ii.quantity as qty_in,
                 0 as qty_out,
                 0 as qty_waste,
+                0 as qty_machine_rej,
+                0 as qty_forging_rej,
                 ic.vehicle_no,
                 ic.process_required as process_name
             FROM inward_items ii
@@ -298,6 +318,8 @@ switch ($type) {
                 0 as qty_in,
                 oi.quantity as qty_out,
                 oi.waste_quantity as qty_waste,
+                oi.machine_rejection as qty_machine_rej,
+                oi.forging_rejection as qty_forging_rej,
                 oc.vehicle_no,
                 oc.process_carried_out as process_name
             FROM outward_items oi
