@@ -49,6 +49,7 @@ switch ($method) {
             $ptId = $_GET['part_id'];
             $stmt = $conn->prepare("
                 SELECT 
+                    CONCAT(ic.id, '_', ii.id) as lot_key,
                     ii.id as inward_item_id,
                     ic.id as inward_challan_id,
                     ic.challan_no as inward_challan_no,

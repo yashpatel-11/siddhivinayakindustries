@@ -111,6 +111,25 @@ class LocalDataStore {
         inv.process_required = 'CNC TURNING';
       }
     });
+
+    // Auto-repair: Ensure all inward items have unique IDs across all inwards
+    let maxItemId = 0;
+    const seenItemIds = new Set();
+    let reindexed = false;
+    this.inwards.forEach(inv => {
+      if (Array.isArray(inv.items)) {
+        inv.items.forEach(it => {
+          if (!it.id || seenItemIds.has(it.id)) {
+            maxItemId++;
+            it.id = maxItemId;
+            reindexed = true;
+          } else {
+            seenItemIds.add(it.id);
+            if (Number(it.id) > maxItemId) maxItemId = Number(it.id);
+          }
+        });
+      }
+    });
     this.save();
   }
 
@@ -439,6 +458,7 @@ class LocalDataStore {
             const available = Math.max(0, original - (dispatched + waste));
 
             lots.push({
+              lot_key: `${inv.id}_${it.id}`,
               inward_item_id: it.id,
               inward_challan_id: inv.id,
               inward_challan_no: inv.challan_no,
@@ -469,15 +489,25 @@ class LocalDataStore {
     let totQty = 0;
     let totAmt = 0;
 
-    const items = data.items.map((it, idx) => {
+    let maxItemId = 0;
+    this.inwards.forEach(inv => {
+      if (Array.isArray(inv.items)) {
+        inv.items.forEach(x => {
+          if (x.id && Number(x.id) > maxItemId) maxItemId = Number(x.id);
+        });
+      }
+    });
+
+    const items = data.items.map((it) => {
       const part = this.parts.find(p => Number(p.id) === Number(it.part_id)) || {};
       const q = Number(it.quantity || 0);
       const r = Number(it.rate || part.default_rate || 0);
       const a = Number(it.amount || (q * r));
       totQty += q;
       totAmt += a;
+      maxItemId++;
       return {
-        id: idx + 1,
+        id: maxItemId,
         inward_id: newId,
         part_id: Number(it.part_id),
         part_no: part.part_no || it.part_no,

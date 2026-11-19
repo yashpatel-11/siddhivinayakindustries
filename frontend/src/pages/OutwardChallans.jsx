@@ -172,7 +172,11 @@ export default function OutwardChallans({
       if (lots.length > 0) {
         let lotToSelect = null;
         if (targetInwardItemId) {
-          lotToSelect = lots.find(l => String(l.inward_item_id) === String(targetInwardItemId));
+          lotToSelect = lots.find(l => 
+            String(l.inward_item_id) === String(targetInwardItemId) || 
+            String(l.lot_key) === String(targetInwardItemId) ||
+            (prefillData?.inward_challan_no && l.inward_challan_no === prefillData.inward_challan_no)
+          );
         }
         if (!lotToSelect) {
           // Default to the first lot that has available stock, or the first lot
@@ -277,15 +281,20 @@ export default function OutwardChallans({
     }
   };
 
-  const handleInwardLotChange = (index, inwardItemId) => {
+  const handleInwardLotChange = (index, selectedVal) => {
     const lots = inwardLotsByRow[index] || [];
-    const selectedLot = lots.find(l => Number(l.inward_item_id) === Number(inwardItemId));
+    const selectedLot = lots.find(l => {
+      const keyVal = l.lot_key || `${l.inward_challan_id}_${l.inward_item_id}`;
+      return String(keyVal) === String(selectedVal) || String(l.inward_item_id) === String(selectedVal);
+    });
 
     if (selectedLot) {
       selectLotForItem(index, selectedLot);
     } else {
       const updated = [...formData.items];
+      updated[index].lot_key = '';
       updated[index].inward_item_id = '';
+      updated[index].inward_challan_id = '';
       updated[index].inward_challan_no = '';
       updated[index].heat_no = '';
       updated[index].available_challan_stock = null;
@@ -297,7 +306,9 @@ export default function OutwardChallans({
     const updated = [...formData.items];
     const availStock = Number(lot.available_stock || 0);
 
+    updated[index].lot_key = lot.lot_key || `${lot.inward_challan_id}_${lot.inward_item_id}`;
     updated[index].inward_item_id = lot.inward_item_id;
+    updated[index].inward_challan_id = lot.inward_challan_id;
     updated[index].inward_challan_no = lot.inward_challan_no;
     updated[index].challan_date = lot.challan_date;
     updated[index].heat_no = lot.heat_no || '';
@@ -870,18 +881,21 @@ export default function OutwardChallans({
                               <select
                                 required
                                 disabled={!item.part_id}
-                                value={item.inward_item_id}
+                                value={item.lot_key || (item.inward_challan_id ? `${item.inward_challan_id}_${item.inward_item_id}` : item.inward_item_id)}
                                 onChange={(e) => handleInwardLotChange(idx, e.target.value)}
                                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 <option value="">
                                   {item.part_id ? "-- Choose Inward Challan --" : "Select part first"}
                                 </option>
-                                {lots.map(lot => (
-                                  <option key={lot.inward_item_id} value={lot.inward_item_id}>
-                                    Challan #{lot.inward_challan_no} (Dated: {lot.challan_date} | Heat: {lot.heat_no} | Inward: {lot.original_quantity} | Avail: {lot.available_stock} {lot.unit})
-                                  </option>
-                                ))}
+                                {lots.map((lot, lIdx) => {
+                                  const keyVal = lot.lot_key || `${lot.inward_challan_id}_${lot.inward_item_id || lIdx}`;
+                                  return (
+                                    <option key={keyVal} value={keyVal}>
+                                      Challan #{lot.inward_challan_no} (Dated: {lot.challan_date} | Heat: {lot.heat_no} | Inward: {lot.original_quantity} | Avail: {lot.available_stock} {lot.unit})
+                                    </option>
+                                  );
+                                })}
                               </select>
                             </div>
 
