@@ -33,7 +33,7 @@ export default function InwardChallans({
     party_id: '',
     vehicle_no: '',
     eway_bill_no: '',
-    process_required: 'BROACHING / CNC TURNING',
+    process_required: 'CNC TURNING',
     remarks: '',
     items: [
       { part_id: '', grade: '', heat_no: '', quantity: '', rate: '', amount: 0 }
@@ -151,7 +151,7 @@ export default function InwardChallans({
       party_id: '',
       vehicle_no: '',
       eway_bill_no: '',
-      process_required: 'BROACHING / CNC TURNING',
+      process_required: 'CNC TURNING',
       remarks: '',
       items: [
         { part_id: '', grade: '', heat_no: '', quantity: '', rate: '', amount: 0 }
@@ -431,7 +431,7 @@ export default function InwardChallans({
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">Nature of Processing Required</label>
                   <input
                     type="text"
-                    placeholder="e.g. BROACHING / CNC TURNING"
+                    placeholder="e.g. CNC TURNING"
                     value={formData.process_required}
                     onChange={(e) => setFormData({ ...formData, process_required: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 uppercase"

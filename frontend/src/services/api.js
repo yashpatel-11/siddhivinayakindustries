@@ -480,7 +480,7 @@ class LocalDataStore {
       party_state_code: party.state_code || '24-Gujarat',
       vehicle_no: data.vehicle_no || '',
       eway_bill_no: data.eway_bill_no || '',
-      process_required: data.process_required || 'BROACHING / CNC TURNING',
+      process_required: data.process_required || 'CNC TURNING',
       remarks: data.remarks || '',
       total_quantity: totQty,
       total_amount: totAmt,

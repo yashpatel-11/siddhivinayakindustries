@@ -93,7 +93,7 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', onClose })
           </div>
           <div className="pt-1">
             <span className="font-semibold">Nature of Processing:</span>{' '}
-            <span className="font-bold uppercase">{challan.process_required || challan.process_carried_out || 'BROACHING / CNC TURNING'}</span>
+            <span className="font-bold uppercase">{challan.process_required || challan.process_carried_out || 'CNC TURNING'}</span>
           </div>
           {challan.remarks && (
             <div className="pt-1 text-[11px] text-slate-700 italic">

@@ -169,7 +169,7 @@ switch ($method) {
                 ':party_id' => $data['party_id'],
                 ':vehicle_no' => !empty($data['vehicle_no']) ? trim($data['vehicle_no']) : null,
                 ':eway_bill_no' => !empty($data['eway_bill_no']) ? trim($data['eway_bill_no']) : null,
-                ':process_required' => !empty($data['process_required']) ? trim($data['process_required']) : 'BROACHING / CNC TURNING',
+                ':process_required' => !empty($data['process_required']) ? trim($data['process_required']) : 'CNC TURNING',
                 ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null
             ]);
             $inwardId = $conn->lastInsertId();
