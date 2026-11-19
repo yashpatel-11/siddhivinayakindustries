@@ -14,7 +14,7 @@ import {
   Layers,
   FileCheck2
 } from 'lucide-react';
-import { api } from '../services/api';
+import { api, getNextOutwardChallanNo } from '../services/api';
 
 export default function OutwardChallans({ 
   onViewChallan, 
@@ -32,7 +32,7 @@ export default function OutwardChallans({
 
   // New Outward Form State
   const [formData, setFormData] = useState({
-    challan_no: `SV/DC-${String(Math.floor(Math.random() * 900) + 100)}`,
+    challan_no: 'J-1',
     challan_date: new Date().toISOString().slice(0, 10),
     party_id: prefillData?.party_id ? String(prefillData.party_id) : '',
     vehicle_no: '',
@@ -125,8 +125,17 @@ export default function OutwardChallans({
         api.getOutwards(),
         api.getParties()
       ]);
-      setChallans(chRes.data || []);
+      const loadedChallans = chRes.data || [];
+      setChallans(loadedChallans);
       setParties(pRes.data || []);
+
+      const nextNo = getNextOutwardChallanNo(loadedChallans);
+      setFormData(prev => ({
+        ...prev,
+        challan_no: (!prev.challan_no || prev.challan_no.startsWith('SV/DC-') || prev.challan_no === 'J-1')
+          ? nextNo
+          : prev.challan_no
+      }));
     } catch (e) {
       console.error(e);
     } finally {
@@ -408,7 +417,10 @@ export default function OutwardChallans({
         items: validItems
       });
       setShowCreateModal(false);
-      resetForm();
+      const chRes = await api.getOutwards();
+      const updatedList = chRes.data || [];
+      setChallans(updatedList);
+      resetForm(updatedList);
       await loadData();
       if (onActionComplete) onActionComplete();
     } catch (err) {
@@ -418,9 +430,10 @@ export default function OutwardChallans({
     }
   };
 
-  const resetForm = () => {
+  const resetForm = (customChallans = null) => {
+    const listToUse = customChallans || challans;
     setFormData({
-      challan_no: `SV/DC-${String(Math.floor(Math.random() * 900) + 100)}`,
+      challan_no: getNextOutwardChallanNo(listToUse),
       challan_date: new Date().toISOString().slice(0, 10),
       party_id: '',
       vehicle_no: '',
@@ -701,7 +714,7 @@ export default function OutwardChallans({
                     <input
                       type="text"
                       required
-                      placeholder="e.g. SV/DC-002"
+                      placeholder="e.g. J-1"
                       value={formData.challan_no}
                       onChange={(e) => setFormData({ ...formData, challan_no: e.target.value })}
                       className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"

@@ -66,9 +66,21 @@ switch ($method) {
     case 'POST':
         $data = getJsonInput();
 
-        // Validation
+        // Auto-generate J-1, J-2 series if challan_no is empty
         if (empty($data['challan_no'])) {
-            sendResponse(400, ["status" => "error", "message" => "Challan No is required"]);
+            $stmt = $conn->query("SELECT challan_no FROM outward_challans WHERE challan_no REGEXP '^J-[0-9]+$'");
+            $maxNum = 0;
+            if ($stmt) {
+                while ($row = $stmt->fetch()) {
+                    if (preg_match('/^J-(\d+)$/i', $row['challan_no'], $matches)) {
+                        $num = (int)$matches[1];
+                        if ($num > $maxNum) {
+                            $maxNum = $num;
+                        }
+                    }
+                }
+            }
+            $data['challan_no'] = 'J-' . ($maxNum + 1);
         }
         if (empty($data['challan_date'])) {
             sendResponse(400, ["status" => "error", "message" => "Challan Date is required"]);

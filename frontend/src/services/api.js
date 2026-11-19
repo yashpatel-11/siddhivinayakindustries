@@ -77,6 +77,23 @@ const INITIAL_INWARDS = [];
 
 const INITIAL_OUTWARDS = [];
 
+export const getNextOutwardChallanNo = (existingChallans = []) => {
+  let maxNum = 0;
+  if (Array.isArray(existingChallans)) {
+    for (const ch of existingChallans) {
+      if (!ch || !ch.challan_no) continue;
+      const match = String(ch.challan_no).trim().match(/^J[-]?\s*(\d+)$/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+  }
+  return `J-${maxNum + 1}`;
+};
+
 class LocalDataStore {
   constructor() {
     if (!localStorage.getItem('sv_cleared_entries_v1')) {
@@ -520,7 +537,7 @@ class LocalDataStore {
 
     const record = {
       id: newId,
-      challan_no: data.challan_no,
+      challan_no: (data.challan_no && data.challan_no.trim()) || getNextOutwardChallanNo(this.outwards),
       challan_date: data.challan_date,
       party_id: Number(data.party_id),
       party_name: party.name,
