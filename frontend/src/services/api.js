@@ -105,6 +105,12 @@ class LocalDataStore {
     this.parts = JSON.parse(localStorage.getItem('sv_parts')) || INITIAL_PARTS;
     this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || [];
     this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || [];
+    // Auto-migrate any legacy inward entries to CNC TURNING
+    this.inwards.forEach(inv => {
+      if (inv.process_required === 'BROACHING / CNC TURNING') {
+        inv.process_required = 'CNC TURNING';
+      }
+    });
     this.save();
   }
 

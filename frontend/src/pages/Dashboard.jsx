@@ -269,7 +269,9 @@ export default function Dashboard({
                       <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
                         <span>{inv.challan_date}</span>
                         <span>•</span>
-                        <span className="text-emerald-700 font-medium">{inv.process_required || 'Jobwork'}</span>
+                        <span className="text-emerald-700 font-medium">
+                          {inv.process_required === 'BROACHING / CNC TURNING' ? 'CNC TURNING' : (inv.process_required || 'CNC TURNING')}
+                        </span>
                       </div>
                     </div>
 

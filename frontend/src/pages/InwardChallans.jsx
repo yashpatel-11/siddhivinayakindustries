@@ -276,7 +276,7 @@ export default function InwardChallans({
                     </td>
 
                     <td className="py-3.5 px-4 text-xs font-medium text-slate-700 uppercase">
-                      {ch.process_required || 'Jobwork'}
+                      {ch.process_required === 'BROACHING / CNC TURNING' ? 'CNC TURNING' : (ch.process_required || 'CNC TURNING')}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">

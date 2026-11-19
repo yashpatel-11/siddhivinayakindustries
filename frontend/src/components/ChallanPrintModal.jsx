@@ -93,7 +93,11 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', onClose })
           </div>
           <div className="pt-1">
             <span className="font-semibold">Nature of Processing:</span>{' '}
-            <span className="font-bold uppercase">{challan.process_required || challan.process_carried_out || 'CNC TURNING'}</span>
+            <span className="font-bold uppercase">
+              {(challan.process_required === 'BROACHING / CNC TURNING')
+                ? 'CNC TURNING'
+                : (challan.process_required || challan.process_carried_out || 'CNC TURNING')}
+            </span>
           </div>
           {challan.remarks && (
             <div className="pt-1 text-[11px] text-slate-700 italic">
@@ -226,7 +230,11 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', onClose })
             <div className="col-span-2">
               3. Nature of Processing / Manufacturing Carried out
             </div>
-            <div className="pl-2 uppercase font-medium">{challan.process_carried_out || challan.process_required || 'BROACHING / CNC TURNING'}</div>
+            <div className="pl-2 uppercase font-medium">
+              {(challan.process_carried_out === 'BROACHING / CNC TURNING' || challan.process_required === 'BROACHING / CNC TURNING')
+                ? 'CNC TURNING'
+                : (challan.process_carried_out || challan.process_required || 'CNC TURNING')}
+            </div>
           </div>
           <div className="p-1.5 grid grid-cols-3">
             <div className="col-span-2">

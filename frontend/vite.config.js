@@ -10,5 +10,14 @@ export default defineConfig({
   ],
   server: {
     port: 5173
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `assets/[name]-v2-[hash].js`,
+        chunkFileNames: `assets/[name]-v2-[hash].js`,
+        assetFileNames: `assets/[name]-v2-[hash].[ext]`
+      }
+    }
   }
 })
