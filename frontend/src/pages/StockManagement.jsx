@@ -584,6 +584,8 @@ export default function StockManagement({ onNavigateWithData }) {
                                                   <th className="py-2 px-2.5">Heat No</th>
                                                   <th className="py-2 px-2.5 text-right">Inward Qty</th>
                                                   <th className="py-2 px-2.5 text-right">Dispatched</th>
+                                                  <th className="py-2 px-2.5 text-right">Machine Rej</th>
+                                                  <th className="py-2 px-2.5 text-right">Forging Rej</th>
                                                   <th className="py-2 px-2.5 text-right font-semibold text-emerald-800">Available Qty</th>
                                                   <th className="py-2 px-2.5 text-center">Action</th>
                                                 </tr>
@@ -598,6 +600,12 @@ export default function StockManagement({ onNavigateWithData }) {
                                                     <td className="py-2 px-2.5 font-mono text-slate-600">{lot.heat_no || '-'}</td>
                                                     <td className="py-2 px-2.5 text-right font-mono text-slate-700 tabular-nums">{Number(lot.original_quantity).toLocaleString()}</td>
                                                     <td className="py-2 px-2.5 text-right font-mono text-slate-500 tabular-nums">{Number(lot.dispatched_quantity).toLocaleString()}</td>
+                                                    <td className="py-2 px-2.5 text-right font-mono text-amber-700 tabular-nums">
+                                                      {Number(lot.machine_rejection || 0) > 0 ? `-${Number(lot.machine_rejection).toLocaleString()}` : '0'}
+                                                    </td>
+                                                    <td className="py-2 px-2.5 text-right font-mono text-rose-700 tabular-nums">
+                                                      {Number(lot.forging_rejection || 0) > 0 ? `-${Number(lot.forging_rejection).toLocaleString()}` : '0'}
+                                                    </td>
                                                     <td className="py-2 px-2.5 text-right font-mono font-semibold text-emerald-700 tabular-nums">
                                                       {Number(lot.available_stock).toLocaleString()} <span className="text-[10px] font-sans text-slate-400 font-normal">{lot.unit || 'NOS'}</span>
                                                     </td>
