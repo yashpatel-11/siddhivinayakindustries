@@ -419,10 +419,11 @@ class LocalDataStore {
     }));
   }
 
-  getInwardLots(partyId, partId) {
+  getInwardLots(partyId, partId, excludeOutwardId = null) {
     if (!partyId || !partId) return [];
     const pId = Number(partyId);
     const ptId = Number(partId);
+    const exclOutId = excludeOutwardId ? Number(excludeOutwardId) : null;
     const lots = [];
 
     this.inwards
@@ -436,6 +437,7 @@ class LocalDataStore {
             let mRejTotal = 0;
             let fRejTotal = 0;
             this.outwards.forEach(out => {
+              if (exclOutId && Number(out.id) === exclOutId) return;
               out.items.forEach(ot => {
                 if (
                   (ot.inward_item_id && Number(ot.inward_item_id) === Number(it.id)) ||
@@ -614,6 +616,166 @@ class LocalDataStore {
     this.outwards.push(record);
     this.save();
     return record;
+  }
+
+  updateInward(data) {
+    const idx = this.inwards.findIndex(i => Number(i.id) === Number(data.id));
+    if (idx === -1) {
+      throw new Error("Inward challan not found");
+    }
+    const oldChallan = this.inwards[idx];
+    const oldChallanNo = oldChallan.challan_no;
+    const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
+
+    let maxItemId = 0;
+    this.inwards.forEach(inv => {
+      if (Array.isArray(inv.items)) {
+        inv.items.forEach(x => {
+          if (x.id && Number(x.id) > maxItemId) maxItemId = Number(x.id);
+        });
+      }
+    });
+
+    let totQty = 0;
+    let totAmt = 0;
+
+    const items = data.items.map((it) => {
+      const part = this.parts.find(p => Number(p.id) === Number(it.part_id)) || {};
+      const q = Number(it.quantity || 0);
+      const r = Number(it.rate || part.default_rate || 0);
+      const a = Number(it.amount || (q * r));
+      totQty += q;
+      totAmt += a;
+      let itemId = it.id ? Number(it.id) : null;
+      if (!itemId) {
+        maxItemId++;
+        itemId = maxItemId;
+      }
+      return {
+        id: itemId,
+        inward_id: oldChallan.id,
+        part_id: Number(it.part_id),
+        part_no: part.part_no || it.part_no,
+        part_description: part.description || it.part_description,
+        grade: it.grade || part.grade,
+        heat_no: it.heat_no || '',
+        quantity: q,
+        rate: r,
+        amount: a,
+        unit: part.unit || 'NOS',
+        default_hsn: part.hsn_code || '73261910'
+      };
+    });
+
+    const updated = {
+      ...oldChallan,
+      challan_no: data.challan_no,
+      challan_date: data.challan_date,
+      party_id: Number(data.party_id),
+      party_name: party.name || oldChallan.party_name,
+      party_gstin: party.gstin || oldChallan.party_gstin,
+      party_address: party.address || oldChallan.party_address,
+      party_phone: party.phone || oldChallan.party_phone,
+      party_state_code: party.state_code || oldChallan.party_state_code || '24-Gujarat',
+      vehicle_no: data.vehicle_no || '',
+      eway_bill_no: data.eway_bill_no || '',
+      process_required: data.process_required || 'CNC TURNING',
+      remarks: data.remarks || '',
+      total_quantity: totQty,
+      total_amount: totAmt,
+      items
+    };
+
+    this.inwards[idx] = updated;
+
+    // If challan_no changed, update in outward challans referencing it
+    if (oldChallanNo !== data.challan_no) {
+      this.outwards.forEach(out => {
+        out.items.forEach(ot => {
+          if (ot.inward_challan_no === oldChallanNo) {
+            ot.inward_challan_no = data.challan_no;
+          }
+        });
+      });
+    }
+
+    this.save();
+    return updated;
+  }
+
+  updateOutward(data) {
+    const idx = this.outwards.findIndex(o => Number(o.id) === Number(data.id));
+    if (idx === -1) {
+      throw new Error("Outward challan not found");
+    }
+    const oldChallan = this.outwards[idx];
+    const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
+
+    let totQty = 0;
+    let totWaste = 0;
+    let totMachineRej = 0;
+    let totForgingRej = 0;
+    let totAmt = 0;
+
+    const items = data.items.map((it, itemIdx) => {
+      const part = this.parts.find(p => Number(p.id) === Number(it.part_id)) || {};
+      const q = Number(it.quantity || 0);
+      const mr = Number(it.machine_rejection || 0);
+      const fr = Number(it.forging_rejection || 0);
+      const w = Number(it.waste_quantity !== undefined && it.waste_quantity !== '' ? it.waste_quantity : (mr + fr));
+      const r = Number(it.rate || part.default_rate || 0);
+      const a = Number(it.amount || (q * r));
+      totQty += q;
+      totWaste += w;
+      totMachineRej += mr;
+      totForgingRej += fr;
+      totAmt += a;
+      return {
+        id: it.id || (itemIdx + 1),
+        outward_id: oldChallan.id,
+        part_id: Number(it.part_id),
+        inward_item_id: it.inward_item_id ? Number(it.inward_item_id) : null,
+        inward_challan_no: it.inward_challan_no || null,
+        part_no: part.part_no || it.part_no,
+        part_description: part.description || it.part_description,
+        default_grade: it.grade || it.default_grade || part.grade,
+        hsn_code: part.hsn_code || '73261910',
+        heat_no: it.heat_no || '',
+        quantity: q,
+        machine_rejection: mr,
+        forging_rejection: fr,
+        waste_quantity: w,
+        rate: r,
+        amount: a,
+        unit: part.unit || 'NOS'
+      };
+    });
+
+    const updated = {
+      ...oldChallan,
+      challan_no: data.challan_no,
+      challan_date: data.challan_date,
+      party_id: Number(data.party_id),
+      party_name: party.name || oldChallan.party_name,
+      party_gstin: party.gstin || oldChallan.party_gstin,
+      party_address: party.address || oldChallan.party_address,
+      party_phone: party.phone || oldChallan.party_phone,
+      party_state_code: party.state_code || oldChallan.party_state_code || '24-Gujarat',
+      vehicle_no: data.vehicle_no || '',
+      eway_bill_no: data.eway_bill_no || '',
+      process_carried_out: data.process_carried_out || 'BROACHING / CNC TURNING COMPLETED',
+      remarks: data.remarks || '',
+      total_quantity: totQty,
+      total_waste: totWaste,
+      total_machine_rejection: totMachineRej,
+      total_forging_rejection: totForgingRej,
+      total_amount: totAmt,
+      items
+    };
+
+    this.outwards[idx] = updated;
+    this.save();
+    return updated;
   }
 }
 
@@ -807,6 +969,18 @@ export const api = {
     return { status: 'success', data: record, isLive: false };
   },
 
+  async updateInward(data) {
+    const res = await fetchFromBackend('inward.php', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    if (res.data && res.data.status === 'success') {
+      return res.data;
+    }
+    const record = localStore.updateInward(data);
+    return { status: 'success', data: record, isLive: false };
+  },
+
   async deleteInward(id) {
     const res = await fetchFromBackend(`inward.php?id=${id}`, { method: 'DELETE' });
     if (res.data && res.data.status === 'success') {
@@ -846,6 +1020,18 @@ export const api = {
     return { status: 'success', data: record, isLive: false };
   },
 
+  async updateOutward(data) {
+    const res = await fetchFromBackend('outward.php', {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    if (res.data && res.data.status === 'success') {
+      return res.data;
+    }
+    const record = localStore.updateOutward(data);
+    return { status: 'success', data: record, isLive: false };
+  },
+
   async deleteOutward(id) {
     const res = await fetchFromBackend(`outward.php?id=${id}`, { method: 'DELETE' });
     if (res.data && res.data.status === 'success') {
@@ -864,12 +1050,13 @@ export const api = {
     return { data: localStore.getPartyParts(partyId), isLive: false };
   },
 
-  async getInwardLots(partyId, partId) {
-    const res = await fetchFromBackend(`inward.php?action=part_lots&party_id=${partyId}&part_id=${partId}`);
+  async getInwardLots(partyId, partId, excludeOutwardId = null) {
+    const query = `inward.php?action=part_lots&party_id=${partyId}&part_id=${partId}${excludeOutwardId ? '&exclude_outward_id=' + excludeOutwardId : ''}`;
+    const res = await fetchFromBackend(query);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.getInwardLots(partyId, partId), isLive: false };
+    return { data: localStore.getInwardLots(partyId, partId, excludeOutwardId), isLive: false };
   },
 
   async getStock(type = 'part_wise', params = {}) {

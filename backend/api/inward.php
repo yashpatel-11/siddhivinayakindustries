@@ -47,6 +47,7 @@ switch ($method) {
         if (isset($_GET['action']) && $_GET['action'] === 'part_lots' && !empty($_GET['party_id']) && !empty($_GET['part_id'])) {
             $pId = $_GET['party_id'];
             $ptId = $_GET['part_id'];
+            $excludeOutwardId = !empty($_GET['exclude_outward_id']) ? (int)$_GET['exclude_outward_id'] : 0;
             $stmt = $conn->prepare("
                 SELECT 
                     CONCAT(ic.id, '_', ii.id) as lot_key,
@@ -78,12 +79,18 @@ switch ($method) {
                         SUM(COALESCE(oi.machine_rejection, 0)) as machine_rejection,
                         SUM(COALESCE(oi.forging_rejection, 0)) as forging_rejection
                     FROM outward_items oi
+                    WHERE (:exclude_outward_id = 0 OR oi.outward_id != :exclude_outward_id2)
                     GROUP BY oi.inward_item_id
                 ) out_sub ON ii.id = out_sub.inward_item_id
                 WHERE ic.party_id = :party_id AND ii.part_id = :part_id
                 ORDER BY ic.challan_date ASC, ic.id ASC
             ");
-            $stmt->execute([':party_id' => $pId, ':part_id' => $ptId]);
+            $stmt->execute([
+                ':party_id' => $pId, 
+                ':part_id' => $ptId,
+                ':exclude_outward_id' => $excludeOutwardId,
+                ':exclude_outward_id2' => $excludeOutwardId
+            ]);
             $lots = $stmt->fetchAll();
             sendResponse(200, ["status" => "success", "data" => $lots]);
         }
@@ -211,6 +218,145 @@ switch ($method) {
             sendResponse(500, [
                 "status" => "error",
                 "message" => "Failed to save inward challan: " . $e->getMessage()
+            ]);
+        }
+        break;
+
+    case 'PUT':
+        $data = getJsonInput();
+
+        if (empty($data['id'])) {
+            sendResponse(400, ["status" => "error", "message" => "Challan ID is required for editing"]);
+        }
+        if (empty($data['challan_no'])) {
+            sendResponse(400, ["status" => "error", "message" => "Challan No is required"]);
+        }
+        if (empty($data['challan_date'])) {
+            sendResponse(400, ["status" => "error", "message" => "Challan Date is required"]);
+        }
+        if (empty($data['party_id'])) {
+            sendResponse(400, ["status" => "error", "message" => "Party is required"]);
+        }
+        if (empty($data['items']) || !is_array($data['items']) || count($data['items']) === 0) {
+            sendResponse(400, ["status" => "error", "message" => "At least one item is required in the inward challan"]);
+        }
+
+        try {
+            $conn->beginTransaction();
+            $inwardId = (int)$data['id'];
+
+            // 1. Update inward_challans header
+            $stmt = $conn->prepare("
+                UPDATE inward_challans 
+                SET challan_no = :challan_no,
+                    challan_date = :challan_date,
+                    party_id = :party_id,
+                    vehicle_no = :vehicle_no,
+                    eway_bill_no = :eway_bill_no,
+                    process_required = :process_required,
+                    remarks = :remarks
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':id' => $inwardId,
+                ':challan_no' => trim($data['challan_no']),
+                ':challan_date' => $data['challan_date'],
+                ':party_id' => $data['party_id'],
+                ':vehicle_no' => !empty($data['vehicle_no']) ? trim($data['vehicle_no']) : null,
+                ':eway_bill_no' => !empty($data['eway_bill_no']) ? trim($data['eway_bill_no']) : null,
+                ':process_required' => !empty($data['process_required']) ? trim($data['process_required']) : 'CNC TURNING',
+                ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null
+            ]);
+
+            // 2. Keep outward_items.inward_challan_no updated if challan_no changed
+            $updOutwardStmt = $conn->prepare("
+                UPDATE outward_items oi
+                JOIN inward_items ii ON oi.inward_item_id = ii.id
+                SET oi.inward_challan_no = :new_challan_no
+                WHERE ii.inward_id = :inward_id
+            ");
+            $updOutwardStmt->execute([
+                ':new_challan_no' => trim($data['challan_no']),
+                ':inward_id' => $inwardId
+            ]);
+
+            // 3. Process line items
+            $existingItemStmt = $conn->prepare("SELECT id FROM inward_items WHERE inward_id = :inward_id");
+            $existingItemStmt->execute([':inward_id' => $inwardId]);
+            $existingItemIds = $existingItemStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $keptItemIds = [];
+            $updateItemStmt = $conn->prepare("
+                UPDATE inward_items
+                SET part_id = :part_id,
+                    grade = :grade,
+                    heat_no = :heat_no,
+                    quantity = :quantity,
+                    rate = :rate,
+                    amount = :amount
+                WHERE id = :id AND inward_id = :inward_id
+            ");
+
+            $insertItemStmt = $conn->prepare("
+                INSERT INTO inward_items (inward_id, part_id, grade, heat_no, quantity, rate, amount)
+                VALUES (:inward_id, :part_id, :grade, :heat_no, :quantity, :rate, :amount)
+            ");
+
+            foreach ($data['items'] as $item) {
+                if (empty($item['part_id']) || empty($item['quantity']) || (float)$item['quantity'] <= 0) {
+                    continue;
+                }
+                $qty = (float)$item['quantity'];
+                $rate = isset($item['rate']) ? (float)$item['rate'] : 0.00;
+                $amount = isset($item['amount']) ? (float)$item['amount'] : ($qty * $rate);
+                $itemId = !empty($item['id']) ? (int)$item['id'] : null;
+
+                if ($itemId && in_array($itemId, $existingItemIds)) {
+                    $updateItemStmt->execute([
+                        ':id' => $itemId,
+                        ':inward_id' => $inwardId,
+                        ':part_id' => $item['part_id'],
+                        ':grade' => !empty($item['grade']) ? trim($item['grade']) : null,
+                        ':heat_no' => !empty($item['heat_no']) ? trim($item['heat_no']) : null,
+                        ':quantity' => $qty,
+                        ':rate' => $rate,
+                        ':amount' => $amount
+                    ]);
+                    $keptItemIds[] = $itemId;
+                } else {
+                    $insertItemStmt->execute([
+                        ':inward_id' => $inwardId,
+                        ':part_id' => $item['part_id'],
+                        ':grade' => !empty($item['grade']) ? trim($item['grade']) : null,
+                        ':heat_no' => !empty($item['heat_no']) ? trim($item['heat_no']) : null,
+                        ':quantity' => $qty,
+                        ':rate' => $rate,
+                        ':amount' => $amount
+                    ]);
+                    $keptItemIds[] = $conn->lastInsertId();
+                }
+            }
+
+            // Delete removed items
+            $deleteIds = array_diff($existingItemIds, $keptItemIds);
+            if (!empty($deleteIds)) {
+                $placeholders = implode(',', array_fill(0, count($deleteIds), '?'));
+                $deleteStmt = $conn->prepare("DELETE FROM inward_items WHERE id IN ($placeholders)");
+                $deleteStmt->execute(array_values($deleteIds));
+            }
+
+            $conn->commit();
+
+            sendResponse(200, [
+                "status" => "success",
+                "message" => "Inward Challan updated successfully",
+                "data" => ["id" => $inwardId]
+            ]);
+        } catch (Exception $e) {
+            $conn->rollBack();
+            sendResponse(500, [
+                "status" => "error",
+                "message" => "Failed to update inward challan: " . $e->getMessage()
             ]);
         }
         break;

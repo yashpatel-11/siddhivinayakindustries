@@ -5,6 +5,7 @@ import {
   Search, 
   Eye, 
   Trash2, 
+  Pencil,
   Calendar, 
   Truck, 
   AlertCircle,
@@ -29,6 +30,7 @@ export default function OutwardChallans({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(initialOpenCreate);
+  const [editingChallanId, setEditingChallanId] = useState(null);
 
   // New Outward Form State
   const [formData, setFormData] = useState({
@@ -158,10 +160,11 @@ export default function OutwardChallans({
     }
   };
 
-  const loadLotsForRow = async (rowIndex, partyId, partId, targetInwardItemId = null) => {
+  const loadLotsForRow = async (rowIndex, partyId, partId, targetInwardItemId = null, customExcludeOutwardId = null) => {
     if (!partyId || !partId) return;
     try {
-      const res = await api.getInwardLots(partyId, partId);
+      const exclId = customExcludeOutwardId !== null ? customExcludeOutwardId : editingChallanId;
+      const res = await api.getInwardLots(partyId, partId, exclId);
       const lots = res.data || [];
       setInwardLotsByRow(prev => ({
         ...prev,
@@ -183,7 +186,7 @@ export default function OutwardChallans({
           lotToSelect = lots.length === 1 ? lots[0] : (lots.find(l => Number(l.available_stock) > 0) || lots[0]);
         }
         if (lotToSelect) {
-          selectLotForItem(rowIndex, lotToSelect);
+          selectLotForItem(rowIndex, lotToSelect, !!editingChallanId);
         }
       }
     } catch (e) {
@@ -302,7 +305,7 @@ export default function OutwardChallans({
     }
   };
 
-  const selectLotForItem = (index, lot) => {
+  const selectLotForItem = (index, lot, preserveQty = false) => {
     const updated = [...formData.items];
     const availStock = Number(lot.available_stock || 0);
 
@@ -316,15 +319,17 @@ export default function OutwardChallans({
     updated[index].available_challan_stock = availStock;
     updated[index].unit = lot.unit || 'NOS';
     
-    // Automatically show the available quantity from the selected challan
-    updated[index].quantity = availStock > 0 ? String(availStock) : '0';
-    if (!updated[index].machine_rejection) updated[index].machine_rejection = '0';
-    if (!updated[index].forging_rejection) updated[index].forging_rejection = '0';
-    updated[index].waste_quantity = '0';
+    if (!preserveQty) {
+      // Automatically show the available quantity from the selected challan
+      updated[index].quantity = availStock > 0 ? String(availStock) : '0';
+      if (!updated[index].machine_rejection) updated[index].machine_rejection = '0';
+      if (!updated[index].forging_rejection) updated[index].forging_rejection = '0';
+      updated[index].waste_quantity = '0';
 
-    // Auto calculate amount with qty
-    const qty = parseFloat(updated[index].quantity) || 0;
-    updated[index].amount = (qty * Number(lot.rate || 0)).toFixed(2);
+      // Auto calculate amount with qty
+      const qty = parseFloat(updated[index].quantity) || 0;
+      updated[index].amount = (qty * Number(lot.rate || 0)).toFixed(2);
+    }
 
     setFormData(prev => ({ ...prev, items: updated }));
   };
@@ -385,6 +390,104 @@ export default function OutwardChallans({
     setFormData(prev => ({ ...prev, items: updated }));
   };
 
+  const handleOpenEdit = async (ch) => {
+    try {
+      const full = await api.getOutward(ch.id);
+      const data = full.data || ch;
+      setEditingChallanId(ch.id);
+
+      const partyIdStr = String(data.party_id || '');
+      
+      const pPartsRes = await api.getPartyParts(partyIdStr);
+      const pParts = pPartsRes.data || [];
+      setPartyParts(pParts);
+
+      const items = (data.items && data.items.length > 0)
+        ? data.items.map(it => {
+            const m = parseFloat(it.machine_rejection) || 0;
+            const f = parseFloat(it.forging_rejection) || 0;
+            const w = parseFloat(it.waste_quantity !== undefined && it.waste_quantity !== '' ? it.waste_quantity : (m + f)) || 0;
+            const q = parseFloat(it.quantity) || 0;
+            const r = parseFloat(it.rate) || 0;
+            const a = parseFloat(it.amount || (q * r)).toFixed(2);
+            return {
+              id: it.id,
+              part_id: String(it.part_id),
+              inward_item_id: it.inward_item_id ? String(it.inward_item_id) : '',
+              inward_challan_id: it.inward_challan_id ? String(it.inward_challan_id) : '',
+              inward_challan_no: it.inward_challan_no || '',
+              lot_key: (it.inward_challan_id && it.inward_item_id) ? `${it.inward_challan_id}_${it.inward_item_id}` : (it.inward_item_id ? String(it.inward_item_id) : ''),
+              challan_date: '',
+              heat_no: it.heat_no || '',
+              available_challan_stock: null,
+              quantity: String(q),
+              machine_rejection: String(m),
+              forging_rejection: String(f),
+              waste_quantity: String(w),
+              rate: String(r),
+              amount: a,
+              unit: it.unit || 'NOS'
+            };
+          })
+        : [
+            { 
+              part_id: '', 
+              inward_item_id: '',
+              inward_challan_no: '',
+              challan_date: '',
+              heat_no: '', 
+              available_challan_stock: null,
+              quantity: '', 
+              machine_rejection: '0',
+              forging_rejection: '0',
+              waste_quantity: '0', 
+              rate: '', 
+              amount: 0,
+              unit: 'NOS'
+            }
+          ];
+
+      setFormData({
+        challan_no: data.challan_no || '',
+        challan_date: data.challan_date || '',
+        party_id: partyIdStr,
+        vehicle_no: data.vehicle_no || '',
+        eway_bill_no: data.eway_bill_no || '',
+        process_carried_out: data.process_carried_out || 'BROACHING / CNC TURNING COMPLETED',
+        remarks: data.remarks || '',
+        items
+      });
+
+      const lotsMap = {};
+      for (let idx = 0; idx < items.length; idx++) {
+        const it = items[idx];
+        if (it.part_id) {
+          const lotsRes = await api.getInwardLots(partyIdStr, it.part_id, ch.id);
+          const lots = lotsRes.data || [];
+          lotsMap[idx] = lots;
+          const matchingLot = lots.find(l => 
+            (it.inward_item_id && String(l.inward_item_id) === String(it.inward_item_id)) ||
+            (it.inward_challan_no && l.inward_challan_no === it.inward_challan_no)
+          );
+          if (matchingLot) {
+            it.available_challan_stock = Number(matchingLot.available_stock || 0);
+            if (!it.lot_key) {
+              it.lot_key = matchingLot.lot_key || `${matchingLot.inward_challan_id}_${matchingLot.inward_item_id}`;
+            }
+            if (!it.inward_challan_id) {
+              it.inward_challan_id = matchingLot.inward_challan_id;
+            }
+          }
+        }
+      }
+      setInwardLotsByRow(lotsMap);
+      setFormError('');
+      setShowCreateModal(true);
+    } catch (err) {
+      alert("Failed to load outward challan for editing: " + err.message);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -423,10 +526,18 @@ export default function OutwardChallans({
 
     setSubmitting(true);
     try {
-      await api.createOutward({
-        ...formData,
-        items: validItems
-      });
+      if (editingChallanId) {
+        await api.updateOutward({
+          ...formData,
+          id: editingChallanId,
+          items: validItems
+        });
+      } else {
+        await api.createOutward({
+          ...formData,
+          items: validItems
+        });
+      }
       setShowCreateModal(false);
       const chRes = await api.getOutwards();
       const updatedList = chRes.data || [];
@@ -442,6 +553,7 @@ export default function OutwardChallans({
   };
 
   const resetForm = (customChallans = null) => {
+    setEditingChallanId(null);
     const listToUse = customChallans || challans;
     setFormData({
       challan_no: getNextOutwardChallanNo(listToUse),
@@ -643,6 +755,13 @@ export default function OutwardChallans({
                           <span>Print</span>
                         </button>
                         <button
+                          onClick={() => handleOpenEdit(ch)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                          title="Edit Outward Challan"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(ch.id, ch.challan_no)}
                           className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
                           title="Delete Challan"
@@ -673,9 +792,13 @@ export default function OutwardChallans({
             {/* Modal Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
               <div>
-                <h3 className="text-base font-semibold text-white">Create Outward Delivery Challan</h3>
+                <h3 className="text-base font-semibold text-white">
+                  {editingChallanId ? 'Edit Outward Delivery Challan' : 'Create Outward Delivery Challan'}
+                </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Dispatch against specific Inward Challan lots with dynamic Heat Number & Rate
+                  {editingChallanId 
+                    ? 'Modify dispatch quantities, rejections, or lot items'
+                    : 'Dispatch against specific Inward Challan lots with dynamic Heat Number & Rate'}
                 </p>
               </div>
               <button
@@ -1070,7 +1193,7 @@ export default function OutwardChallans({
                   disabled={submitting || !formData.party_id || partyParts.length === 0}
                   className="inline-flex items-center justify-center px-5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 rounded-lg shadow-xs transition"
                 >
-                  {submitting ? 'Saving Challan...' : 'Create Outward Challan'}
+                  {submitting ? 'Saving Challan...' : (editingChallanId ? 'Save Changes' : 'Create Outward Challan')}
                 </button>
               </div>
             </form>

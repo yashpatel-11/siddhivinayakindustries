@@ -6,6 +6,7 @@ import {
   Eye, 
   Trash2, 
   Printer, 
+  Pencil,
   X, 
   Calendar, 
   Truck, 
@@ -25,6 +26,7 @@ export default function InwardChallans({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(initialOpenCreate);
+  const [editingId, setEditingId] = useState(null);
 
   // New Challan Form State
   const [formData, setFormData] = useState({
@@ -108,6 +110,38 @@ export default function InwardChallans({
     setFormData(prev => ({ ...prev, items: updated }));
   };
 
+  const handleOpenEdit = async (ch) => {
+    try {
+      const full = await api.getInward(ch.id);
+      const data = full.data || ch;
+      setEditingId(ch.id);
+      setFormData({
+        challan_no: data.challan_no || '',
+        challan_date: data.challan_date || '',
+        party_id: String(data.party_id || ''),
+        vehicle_no: data.vehicle_no || '',
+        eway_bill_no: data.eway_bill_no || '',
+        process_required: data.process_required || 'CNC TURNING',
+        remarks: data.remarks || '',
+        items: (data.items && data.items.length > 0)
+          ? data.items.map(it => ({
+              id: it.id,
+              part_id: String(it.part_id),
+              grade: it.grade || '',
+              heat_no: it.heat_no || '',
+              quantity: String(it.quantity || ''),
+              rate: String(it.rate || ''),
+              amount: Number(it.amount || 0).toFixed(2)
+            }))
+          : [{ part_id: '', grade: '', heat_no: '', quantity: '', rate: '', amount: 0 }]
+      });
+      setFormError('');
+      setShowCreateModal(true);
+    } catch (err) {
+      alert("Failed to load challan for editing: " + err.message);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -129,10 +163,18 @@ export default function InwardChallans({
 
     setSubmitting(true);
     try {
-      await api.createInward({
-        ...formData,
-        items: validItems
-      });
+      if (editingId) {
+        await api.updateInward({
+          ...formData,
+          id: editingId,
+          items: validItems
+        });
+      } else {
+        await api.createInward({
+          ...formData,
+          items: validItems
+        });
+      }
       setShowCreateModal(false);
       resetForm();
       await loadData();
@@ -145,6 +187,7 @@ export default function InwardChallans({
   };
 
   const resetForm = () => {
+    setEditingId(null);
     setFormData({
       challan_no: '',
       challan_date: new Date().toISOString().slice(0, 10),
@@ -306,6 +349,13 @@ export default function InwardChallans({
                           <span>Print</span>
                         </button>
                         <button
+                          onClick={() => handleOpenEdit(ch)}
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                          title="Edit Challan"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(ch.id, ch.challan_no)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                           title="Delete Challan"
@@ -336,8 +386,12 @@ export default function InwardChallans({
             {/* Modal Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
               <div>
-                <h3 className="font-bold text-lg">Create Inward Delivery Challan</h3>
-                <p className="text-xs text-slate-400">Receive Jobwork material into workshop inventory</p>
+                <h3 className="font-bold text-lg">
+                  {editingId ? 'Edit Inward Delivery Challan' : 'Create Inward Delivery Challan'}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {editingId ? 'Modify inward material receipt details and line items' : 'Receive Jobwork material into workshop inventory'}
+                </p>
               </div>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -581,7 +635,7 @@ export default function InwardChallans({
                   disabled={submitting}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium shadow-sm transition disabled:opacity-50"
                 >
-                  {submitting ? 'Saving...' : 'Create Inward Challan'}
+                  {submitting ? 'Saving...' : (editingId ? 'Save Changes' : 'Create Inward Challan')}
                 </button>
               </div>
             </form>
