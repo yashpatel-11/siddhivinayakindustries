@@ -18,7 +18,8 @@ import { api } from '../services/api';
 export default function InwardChallans({ 
   onViewChallan, 
   initialOpenCreate = false, 
-  onActionComplete 
+  onActionComplete,
+  currentWorkshop = 'siddhivinayak'
 }) {
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
@@ -47,7 +48,7 @@ export default function InwardChallans({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentWorkshop]);
 
   useEffect(() => {
     if (initialOpenCreate) {
@@ -59,9 +60,9 @@ export default function InwardChallans({
     setLoading(true);
     try {
       const [chRes, pRes, ptRes] = await Promise.all([
-        api.getInwards(),
+        api.getInwards(currentWorkshop),
         api.getParties(),
-        api.getParts()
+        api.getParts(currentWorkshop)
       ]);
       setChallans(chRes.data || []);
       setParties(pRes.data || []);
@@ -167,11 +168,13 @@ export default function InwardChallans({
         await api.updateInward({
           ...formData,
           id: editingId,
+          workshop: currentWorkshop,
           items: validItems
         });
       } else {
         await api.createInward({
           ...formData,
+          workshop: currentWorkshop,
           items: validItems
         });
       }
@@ -237,16 +240,16 @@ export default function InwardChallans({
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-              Material Receipt
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}
             </span>
-            <span className="text-xs text-slate-500">CGST Rule 55 Format</span>
+            <span className="text-xs text-slate-500">Material Receipt • CGST Rule 55 Format</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 mt-1">
             Inward Delivery Challans
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Log incoming jobwork materials from clients for machining and increase floor stock.
+            Log incoming jobwork materials from clients for machining and increase floor stock for {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}.
           </p>
         </div>
 
@@ -386,10 +389,15 @@ export default function InwardChallans({
             {/* Modal Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
               <div>
-                <h3 className="font-bold text-lg">
-                  {editingId ? 'Edit Inward Delivery Challan' : 'Create Inward Delivery Challan'}
-                </h3>
-                <p className="text-xs text-slate-400">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-lg">
+                    {editingId ? 'Edit Inward Delivery Challan' : 'Create Inward Delivery Challan'}
+                  </h3>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
                   {editingId ? 'Modify inward material receipt details and line items' : 'Receive Jobwork material into workshop inventory'}
                 </p>
               </div>

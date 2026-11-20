@@ -6,10 +6,11 @@ require_once __DIR__ . '/../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 $type = $_GET['type'] ?? 'part_wise';
+$workshop = $_GET['workshop'] ?? 'siddhivinayak';
 
 switch ($type) {
     case 'part_wise':
-        // Part-wise stock summary across all parties
+        // Part-wise stock summary across all parties for selected workshop
         $query = "
             SELECT 
                 p.id as part_id,
@@ -34,6 +35,7 @@ switch ($type) {
                     COUNT(DISTINCT ic.party_id) as distinct_parties
                 FROM inward_items ii
                 JOIN inward_challans ic ON ii.inward_id = ic.id
+                WHERE ic.workshop = :ws_in
                 GROUP BY ii.part_id
             ) inward_summary ON p.id = inward_summary.part_id
             LEFT JOIN (
@@ -45,17 +47,19 @@ switch ($type) {
                     SUM(oi.forging_rejection) as total_forging_rejection
                 FROM outward_items oi
                 JOIN outward_challans oc ON oi.outward_id = oc.id
+                WHERE oc.workshop = :ws_out
                 GROUP BY oi.part_id
             ) outward_summary ON p.id = outward_summary.part_id
             ORDER BY current_stock DESC, p.part_no ASC
         ";
-        $stmt = $conn->query($query);
+        $stmt = $conn->prepare($query);
+        $stmt->execute([':ws_in' => $workshop, ':ws_out' => $workshop]);
         $data = $stmt->fetchAll();
         sendResponse(200, ["status" => "success", "type" => "part_wise", "data" => $data]);
         break;
 
     case 'party_wise':
-        // Party-wise stock with grouped parts breakdown
+        // Party-wise stock with grouped parts breakdown for selected workshop
         $partiesQuery = "SELECT id, name, gstin, phone, address FROM parties ORDER BY name ASC";
         $partiesStmt = $conn->query($partiesQuery);
         $parties = $partiesStmt->fetchAll();
@@ -75,9 +79,12 @@ switch ($type) {
             FROM inward_items ii
             JOIN inward_challans ic ON ii.inward_id = ic.id
             JOIN parts p ON ii.part_id = p.id
+            WHERE ic.workshop = :ws_in
             GROUP BY ic.party_id, ii.part_id
         ";
-        $inwardRows = $conn->query($matrixQuery)->fetchAll();
+        $matrixStmt = $conn->prepare($matrixQuery);
+        $matrixStmt->execute([':ws_in' => $workshop]);
+        $inwardRows = $matrixStmt->fetchAll();
 
         $outwardQuery = "
             SELECT 
@@ -89,9 +96,12 @@ switch ($type) {
                 SUM(oi.forging_rejection) as forging_rej_qty
             FROM outward_items oi
             JOIN outward_challans oc ON oi.outward_id = oc.id
+            WHERE oc.workshop = :ws_out
             GROUP BY oc.party_id, oi.part_id
         ";
-        $outwardRows = $conn->query($outwardQuery)->fetchAll();
+        $outwardStmt = $conn->prepare($outwardQuery);
+        $outwardStmt->execute([':ws_out' => $workshop]);
+        $outwardRows = $outwardStmt->fetchAll();
 
         // Merge inward and outward
         $partyPartMap = [];
@@ -169,6 +179,10 @@ switch ($type) {
             $paramsInward[':p_in_part'] = $partId;
             $paramsOutward[':p_out_part'] = $partId;
         }
+        $whereInward[] = "ic.workshop = :ws_in";
+        $whereOutward[] = "oc.workshop = :ws_out";
+        $paramsInward[':ws_in'] = $workshop;
+        $paramsOutward[':ws_out'] = $workshop;
 
         $inwardSql = "
             SELECT 
@@ -287,7 +301,8 @@ switch ($type) {
             JOIN parts p ON ii.part_id = p.id
             WHERE 1=1
         ";
-        $inParams = [];
+        $inParams = [':ws_in' => $workshop];
+        $inSql .= " AND ic.workshop = :ws_in";
         if ($partyId) {
             $inSql .= " AND ic.party_id = :party_id";
             $inParams[':party_id'] = $partyId;
@@ -328,7 +343,8 @@ switch ($type) {
             JOIN parts p ON oi.part_id = p.id
             WHERE 1=1
         ";
-        $outParams = [];
+        $outParams = [':ws_out' => $workshop];
+        $outSql .= " AND oc.workshop = :ws_out";
         if ($partyId) {
             $outSql .= " AND oc.party_id = :party_id";
             $outParams[':party_id'] = $partyId;

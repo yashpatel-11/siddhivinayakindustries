@@ -33,6 +33,14 @@ try {
         $rawPdo->exec("ALTER TABLE `outward_items` ADD COLUMN `forging_rejection` DECIMAL(12, 3) DEFAULT 0.00 AFTER `machine_rejection`");
     } catch (Exception $e) {}
 
+    // Ensure workshop column exists on inward_challans and outward_challans
+    try {
+        $rawPdo->exec("ALTER TABLE `inward_challans` ADD COLUMN `workshop` VARCHAR(50) DEFAULT 'siddhivinayak' AFTER `remarks`");
+    } catch (Exception $e) {}
+    try {
+        $rawPdo->exec("ALTER TABLE `outward_challans` ADD COLUMN `workshop` VARCHAR(50) DEFAULT 'siddhivinayak' AFTER `remarks`");
+    } catch (Exception $e) {}
+
     // Query counts to confirm
     $stmt1 = $rawPdo->query("SELECT COUNT(*) as count FROM parties");
     $partiesCount = $stmt1->fetchColumn();

@@ -6,6 +6,7 @@ require_once __DIR__ . '/../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
+$workshop = $_GET['workshop'] ?? 'siddhivinayak';
 
 switch ($method) {
     case 'GET':
@@ -39,7 +40,7 @@ switch ($method) {
 
             sendResponse(200, ["status" => "success", "data" => $challan]);
         } else {
-            // Get all outward challans
+            // Get all outward challans for selected workshop
             $query = "
                 SELECT 
                     oc.*,
@@ -54,10 +55,12 @@ switch ($method) {
                 FROM outward_challans oc
                 JOIN parties p ON oc.party_id = p.id
                 LEFT JOIN outward_items oi ON oc.id = oi.outward_id
+                WHERE oc.workshop = :ws
                 GROUP BY oc.id
                 ORDER BY oc.challan_date DESC, oc.id DESC
             ";
-            $stmt = $conn->query($query);
+            $stmt = $conn->prepare($query);
+            $stmt->execute([':ws' => $workshop]);
             $challans = $stmt->fetchAll();
             sendResponse(200, ["status" => "success", "data" => $challans]);
         }
@@ -65,10 +68,12 @@ switch ($method) {
 
     case 'POST':
         $data = getJsonInput();
+        $outwardWorkshop = !empty($data['workshop']) ? trim($data['workshop']) : $workshop;
 
-        // Auto-generate J-1, J-2 series if challan_no is empty
+        // Auto-generate J-1, J-2 series for the selected workshop if challan_no is empty
         if (empty($data['challan_no'])) {
-            $stmt = $conn->query("SELECT challan_no FROM outward_challans WHERE challan_no REGEXP '^J-[0-9]+$'");
+            $stmt = $conn->prepare("SELECT challan_no FROM outward_challans WHERE workshop = :ws AND challan_no REGEXP '^J-[0-9]+$'");
+            $stmt->execute([':ws' => $outwardWorkshop]);
             $maxNum = 0;
             if ($stmt) {
                 while ($row = $stmt->fetch()) {
@@ -97,8 +102,8 @@ switch ($method) {
 
             // Insert outward_challan
             $stmt = $conn->prepare("
-                INSERT INTO outward_challans (challan_no, challan_date, party_id, vehicle_no, eway_bill_no, process_carried_out, remarks)
-                VALUES (:challan_no, :challan_date, :party_id, :vehicle_no, :eway_bill_no, :process_carried_out, :remarks)
+                INSERT INTO outward_challans (challan_no, challan_date, party_id, vehicle_no, eway_bill_no, process_carried_out, remarks, workshop)
+                VALUES (:challan_no, :challan_date, :party_id, :vehicle_no, :eway_bill_no, :process_carried_out, :remarks, :workshop)
             ");
             $stmt->execute([
                 ':challan_no' => trim($data['challan_no']),
@@ -107,7 +112,8 @@ switch ($method) {
                 ':vehicle_no' => !empty($data['vehicle_no']) ? trim($data['vehicle_no']) : null,
                 ':eway_bill_no' => !empty($data['eway_bill_no']) ? trim($data['eway_bill_no']) : null,
                 ':process_carried_out' => !empty($data['process_carried_out']) ? trim($data['process_carried_out']) : 'BROACHING / CNC TURNING COMPLETED',
-                ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null
+                ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null,
+                ':workshop' => $outwardWorkshop
             ]);
 
             $outwardId = $conn->lastInsertId();

@@ -17,7 +17,8 @@ import {
 export default function Dashboard({ 
   dashboardData, 
   onNavigate, 
-  onViewChallan 
+  onViewChallan,
+  currentWorkshop = 'siddhivinayak'
 }) {
   const kpis = dashboardData?.kpis || {};
   const recentInwards = dashboardData?.recent_inwards || [];
@@ -32,12 +33,12 @@ export default function Dashboard({
         <div>
           <div className="flex items-center space-x-2">
             <span className="bg-sky-500/20 text-sky-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-sky-400/30">
-              CNC Machine Shop Operations
+              {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}
             </span>
-            <span className="text-slate-400 text-xs">Rule 55 CGST Compliant</span>
+            <span className="text-slate-400 text-xs">CNC Machine Shop • Rule 55 CGST</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold mt-1 tracking-tight">
-            Workshop Overview & Stock Status
+            {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'} Stock & Operations
           </h1>
           <p className="text-slate-300 text-sm mt-1 max-w-xl">
             Track inward jobwork materials, monitor CNC operations, manage stock part-wise and party-wise, and dispatch finished goods with delivery challans.

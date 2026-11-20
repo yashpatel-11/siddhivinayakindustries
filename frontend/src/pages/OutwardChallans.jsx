@@ -21,7 +21,8 @@ export default function OutwardChallans({
   onViewChallan, 
   initialOpenCreate = false, 
   prefillData = null,
-  onActionComplete 
+  onActionComplete,
+  currentWorkshop = 'siddhivinayak'
 }) {
   const [challans, setChallans] = useState([]);
   const [parties, setParties] = useState([]);
@@ -65,7 +66,7 @@ export default function OutwardChallans({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentWorkshop]);
 
   useEffect(() => {
     if (initialOpenCreate) {
@@ -124,14 +125,14 @@ export default function OutwardChallans({
     setLoading(true);
     try {
       const [chRes, pRes] = await Promise.all([
-        api.getOutwards(),
+        api.getOutwards(currentWorkshop),
         api.getParties()
       ]);
       const loadedChallans = chRes.data || [];
       setChallans(loadedChallans);
       setParties(pRes.data || []);
 
-      const nextNo = getNextOutwardChallanNo(loadedChallans);
+      const nextNo = getNextOutwardChallanNo(loadedChallans, currentWorkshop);
       setFormData(prev => ({
         ...prev,
         challan_no: (!prev.challan_no || prev.challan_no.startsWith('SV/DC-') || prev.challan_no === 'J-1')
@@ -147,7 +148,7 @@ export default function OutwardChallans({
 
   const loadPartyPartsAndInitialize = async (partyId, targetPartId = null, targetInwardItemId = null) => {
     try {
-      const res = await api.getPartyParts(partyId);
+      const res = await api.getPartyParts(partyId, currentWorkshop);
       const parts = res.data || [];
       setPartyParts(parts);
 
@@ -164,7 +165,7 @@ export default function OutwardChallans({
     if (!partyId || !partId) return;
     try {
       const exclId = customExcludeOutwardId !== null ? customExcludeOutwardId : editingChallanId;
-      const res = await api.getInwardLots(partyId, partId, exclId);
+      const res = await api.getInwardLots(partyId, partId, exclId, currentWorkshop);
       const lots = res.data || [];
       setInwardLotsByRow(prev => ({
         ...prev,
@@ -398,7 +399,7 @@ export default function OutwardChallans({
 
       const partyIdStr = String(data.party_id || '');
       
-      const pPartsRes = await api.getPartyParts(partyIdStr);
+      const pPartsRes = await api.getPartyParts(partyIdStr, currentWorkshop);
       const pParts = pPartsRes.data || [];
       setPartyParts(pParts);
 
@@ -462,7 +463,7 @@ export default function OutwardChallans({
       for (let idx = 0; idx < items.length; idx++) {
         const it = items[idx];
         if (it.part_id) {
-          const lotsRes = await api.getInwardLots(partyIdStr, it.part_id, ch.id);
+          const lotsRes = await api.getInwardLots(partyIdStr, it.part_id, ch.id, currentWorkshop);
           const lots = lotsRes.data || [];
           lotsMap[idx] = lots;
           const matchingLot = lots.find(l => 
@@ -530,16 +531,18 @@ export default function OutwardChallans({
         await api.updateOutward({
           ...formData,
           id: editingChallanId,
+          workshop: currentWorkshop,
           items: validItems
         });
       } else {
         await api.createOutward({
           ...formData,
+          workshop: currentWorkshop,
           items: validItems
         });
       }
       setShowCreateModal(false);
-      const chRes = await api.getOutwards();
+      const chRes = await api.getOutwards(currentWorkshop);
       const updatedList = chRes.data || [];
       setChallans(updatedList);
       resetForm(updatedList);
@@ -556,7 +559,7 @@ export default function OutwardChallans({
     setEditingChallanId(null);
     const listToUse = customChallans || challans;
     setFormData({
-      challan_no: getNextOutwardChallanNo(listToUse),
+      challan_no: getNextOutwardChallanNo(listToUse, currentWorkshop),
       challan_date: new Date().toISOString().slice(0, 10),
       party_id: '',
       vehicle_no: '',
@@ -632,16 +635,16 @@ export default function OutwardChallans({
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-medium uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-              Finished Goods Dispatch
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+              {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}
             </span>
-            <span className="text-xs text-slate-400">Rule 55 Delivery Challan</span>
+            <span className="text-xs text-slate-400">Finished Goods Dispatch • Rule 55</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-1">
             Outward Delivery Challans
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-            Select Customer → Choose Inwarded Part → Select Inward Challan lot with live balance → Dispatch.
+            Select Customer → Choose Inwarded Part → Select Inward Challan lot with live balance → Dispatch for {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}.
           </p>
         </div>
 
@@ -792,9 +795,14 @@ export default function OutwardChallans({
             {/* Modal Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
               <div>
-                <h3 className="text-base font-semibold text-white">
-                  {editingChallanId ? 'Edit Outward Delivery Challan' : 'Create Outward Delivery Challan'}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-white">
+                    {editingChallanId ? 'Edit Outward Delivery Challan' : 'Create Outward Delivery Challan'}
+                  </h3>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
+                    {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}
+                  </span>
+                </div>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {editingChallanId 
                     ? 'Modify dispatch quantities, rejections, or lot items'

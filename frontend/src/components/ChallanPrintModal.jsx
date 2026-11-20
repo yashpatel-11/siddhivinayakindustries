@@ -2,20 +2,26 @@
 import React, { useState } from 'react';
 import { Printer, X, Download, Copy, Layers } from 'lucide-react';
 
-export default function ChallanPrintModal({ challan, type = 'INWARD', onClose }) {
+export default function ChallanPrintModal({ challan, type = 'INWARD', workshop = 'siddhivinayak', onClose }) {
   if (!challan) return null;
 
   const [selectedCopy, setSelectedCopy] = useState('Original For Consignee'); // or 'Duplicate for Transporter' or 'Triplicate for Consignor' or 'All'
 
+  const ws = challan.workshop || workshop || 'siddhivinayak';
+  const isGayatri = ws === 'gayatri';
+  const workshopSupplierName = isGayatri ? "GAYATRI INDUSTRIES" : "SIDDHIVINAYAK CNC JOBWORK";
+  const workshopReceiverName = isGayatri ? "GAYATRI INDUSTRIES" : "SIDDHIVINAYAK CNC WORKSHOP";
+  const signatoryLabel = isGayatri ? "(Gayatri Industries)" : "(Siddhivinayak CNC Workshop)";
+
   const isOutward = type === 'OUTWARD';
-  const supplierName = isOutward ? "SIDDHIVINAYAK CNC JOBWORK" : (challan.party_name || "AJK FORGE PRIVATE LIMITED");
+  const supplierName = isOutward ? workshopSupplierName : (challan.party_name || "AJK FORGE PRIVATE LIMITED");
   const supplierAddress = isOutward 
     ? "PLOT NO. 10, MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, AT-PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024"
     : (challan.party_address || "VERAVAL (SHAPAR), RAJKOT");
   const supplierGSTIN = isOutward ? "24AATFN2990F1ZX" : (challan.party_gstin || "24AAGCA0436P1ZN");
   const supplierContact = isOutward ? "9825000000 / 9979000000" : (challan.party_phone || "9427867368 / 9313546921");
 
-  const receiverName = isOutward ? (challan.party_name || "CUSTOMER") : "SIDDHIVINAYAK CNC WORKSHOP";
+  const receiverName = isOutward ? (challan.party_name || "CUSTOMER") : workshopReceiverName;
   const receiverAddress = isOutward 
     ? (challan.party_address || "GIDC AREA, RAJKOT")
     : "MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, PLOT NO. 10, AT - PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024";
@@ -264,7 +270,7 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', onClose })
             <div className="h-8"></div>
             <div className="border-t border-dotted border-black inline-block pt-1 text-center font-semibold">
               Signature of Job Worker / Processor / Authorised Signatory<br />
-              <span className="text-[10px] text-slate-600">(Siddhivinayak CNC Workshop)</span>
+              <span className="text-[10px] text-slate-600">{signatoryLabel}</span>
             </div>
           </div>
         </div>
@@ -286,6 +292,9 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', onClose })
             </span>
             <span className="bg-sky-500/20 text-sky-300 text-xs px-2.5 py-0.5 rounded-full font-mono border border-sky-400/30">
               #{challan.challan_no}
+            </span>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-700 text-sky-300 border border-slate-600">
+              {isGayatri ? "Gayatri Industries" : "Siddhivinayak Industries"}
             </span>
           </div>
 

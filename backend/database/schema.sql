@@ -39,10 +39,12 @@ CREATE TABLE IF NOT EXISTS `inward_challans` (
     `eway_bill_no` VARCHAR(50) DEFAULT NULL,
     `process_required` VARCHAR(255) DEFAULT 'BROACHING / CNC TURNING',
     `remarks` TEXT DEFAULT NULL,
+    `workshop` VARCHAR(50) DEFAULT 'siddhivinayak',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`party_id`) REFERENCES `parties`(`id`) ON DELETE CASCADE,
     INDEX `idx_inward_party_date` (`party_id`, `challan_date`),
-    INDEX `idx_inward_challan_no` (`challan_no`)
+    INDEX `idx_inward_challan_no` (`challan_no`),
+    INDEX `idx_inward_workshop` (`workshop`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. Inward Challan Line Items
@@ -70,10 +72,12 @@ CREATE TABLE IF NOT EXISTS `outward_challans` (
     `eway_bill_no` VARCHAR(50) DEFAULT NULL,
     `process_carried_out` VARCHAR(255) DEFAULT 'BROACHING / CNC TURNING',
     `remarks` TEXT DEFAULT NULL,
+    `workshop` VARCHAR(50) DEFAULT 'siddhivinayak',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`party_id`) REFERENCES `parties`(`id`) ON DELETE CASCADE,
     INDEX `idx_outward_party_date` (`party_id`, `challan_date`),
-    INDEX `idx_outward_challan_no` (`challan_no`)
+    INDEX `idx_outward_challan_no` (`challan_no`),
+    INDEX `idx_outward_workshop` (`workshop`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 6. Outward Challan Line Items

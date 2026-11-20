@@ -6,6 +6,7 @@ require_once __DIR__ . '/../config/database.php';
 $db = new Database();
 $conn = $db->getConnection();
 $method = $_SERVER['REQUEST_METHOD'];
+$workshop = $_GET['workshop'] ?? 'siddhivinayak';
 
 switch ($method) {
     case 'GET':
@@ -31,14 +32,14 @@ switch ($method) {
                     SELECT oi.part_id, SUM(oi.quantity + oi.waste_quantity) as total_outward
                     FROM outward_items oi
                     JOIN outward_challans oc ON oi.outward_id = oc.id
-                    WHERE oc.party_id = :party_id_sub
+                    WHERE oc.party_id = :party_id_sub AND oc.workshop = :ws_sub
                     GROUP BY oi.part_id
                 ) out_sub ON p.id = out_sub.part_id
-                WHERE ic.party_id = :party_id
+                WHERE ic.party_id = :party_id AND ic.workshop = :ws
                 GROUP BY p.id
                 ORDER BY p.part_no ASC
             ");
-            $stmt->execute([':party_id' => $pId, ':party_id_sub' => $pId]);
+            $stmt->execute([':party_id' => $pId, ':party_id_sub' => $pId, ':ws' => $workshop, ':ws_sub' => $workshop]);
             $parts = $stmt->fetchAll();
             sendResponse(200, ["status" => "success", "data" => $parts]);
         }
@@ -79,15 +80,18 @@ switch ($method) {
                         SUM(COALESCE(oi.machine_rejection, 0)) as machine_rejection,
                         SUM(COALESCE(oi.forging_rejection, 0)) as forging_rejection
                     FROM outward_items oi
-                    WHERE (:exclude_outward_id = 0 OR oi.outward_id != :exclude_outward_id2)
+                    JOIN outward_challans oc ON oi.outward_id = oc.id
+                    WHERE oc.workshop = :ws_out AND (:exclude_outward_id = 0 OR oi.outward_id != :exclude_outward_id2)
                     GROUP BY oi.inward_item_id
                 ) out_sub ON ii.id = out_sub.inward_item_id
-                WHERE ic.party_id = :party_id AND ii.part_id = :part_id
+                WHERE ic.party_id = :party_id AND ii.part_id = :part_id AND ic.workshop = :ws
                 ORDER BY ic.challan_date ASC, ic.id ASC
             ");
             $stmt->execute([
                 ':party_id' => $pId, 
                 ':part_id' => $ptId,
+                ':ws' => $workshop,
+                ':ws_out' => $workshop,
                 ':exclude_outward_id' => $excludeOutwardId,
                 ':exclude_outward_id2' => $excludeOutwardId
             ]);
@@ -125,7 +129,7 @@ switch ($method) {
 
             sendResponse(200, ["status" => "success", "data" => $challan]);
         } else {
-            // Get all inward challans
+            // Get all inward challans for selected workshop
             $query = "
                 SELECT 
                     ic.*,
@@ -137,10 +141,12 @@ switch ($method) {
                 FROM inward_challans ic
                 JOIN parties p ON ic.party_id = p.id
                 LEFT JOIN inward_items ii ON ic.id = ii.inward_id
+                WHERE ic.workshop = :ws
                 GROUP BY ic.id
                 ORDER BY ic.challan_date DESC, ic.id DESC
             ";
-            $stmt = $conn->query($query);
+            $stmt = $conn->prepare($query);
+            $stmt->execute([':ws' => $workshop]);
             $challans = $stmt->fetchAll();
             sendResponse(200, ["status" => "success", "data" => $challans]);
         }
@@ -148,6 +154,7 @@ switch ($method) {
 
     case 'POST':
         $data = getJsonInput();
+        $inwardWorkshop = !empty($data['workshop']) ? trim($data['workshop']) : $workshop;
 
         // Validation
         if (empty($data['challan_no'])) {
@@ -168,8 +175,8 @@ switch ($method) {
 
             // Insert into inward_challans
             $stmt = $conn->prepare("
-                INSERT INTO inward_challans (challan_no, challan_date, party_id, vehicle_no, eway_bill_no, process_required, remarks)
-                VALUES (:challan_no, :challan_date, :party_id, :vehicle_no, :eway_bill_no, :process_required, :remarks)
+                INSERT INTO inward_challans (challan_no, challan_date, party_id, vehicle_no, eway_bill_no, process_required, remarks, workshop)
+                VALUES (:challan_no, :challan_date, :party_id, :vehicle_no, :eway_bill_no, :process_required, :remarks, :workshop)
             ");
             $stmt->execute([
                 ':challan_no' => trim($data['challan_no']),
@@ -178,7 +185,8 @@ switch ($method) {
                 ':vehicle_no' => !empty($data['vehicle_no']) ? trim($data['vehicle_no']) : null,
                 ':eway_bill_no' => !empty($data['eway_bill_no']) ? trim($data['eway_bill_no']) : null,
                 ':process_required' => !empty($data['process_required']) ? trim($data['process_required']) : 'CNC TURNING',
-                ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null
+                ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null,
+                ':workshop' => $inwardWorkshop
             ]);
             $inwardId = $conn->lastInsertId();
             // Insert line items

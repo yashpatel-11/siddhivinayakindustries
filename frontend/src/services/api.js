@@ -77,11 +77,20 @@ const INITIAL_INWARDS = [];
 
 const INITIAL_OUTWARDS = [];
 
-export const getNextOutwardChallanNo = (existingChallans = []) => {
+export const WORKSHOPS = [
+  { id: 'siddhivinayak', name: 'Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
+  { id: 'gayatri', name: 'Gayatri Industries', shortName: 'Gayatri', code: 'GI' }
+];
+
+let currentWorkshop = localStorage.getItem('sv_current_workshop') || 'siddhivinayak';
+
+export const getNextOutwardChallanNo = (existingChallans = [], workshop = null) => {
+  const ws = workshop || currentWorkshop;
   let maxNum = 0;
   if (Array.isArray(existingChallans)) {
     for (const ch of existingChallans) {
       if (!ch || !ch.challan_no) continue;
+      if ((ch.workshop || 'siddhivinayak') !== ws) continue;
       const match = String(ch.challan_no).trim().match(/^J[-]?\s*(\d+)$/i);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -96,6 +105,7 @@ export const getNextOutwardChallanNo = (existingChallans = []) => {
 
 class LocalDataStore {
   constructor() {
+    this.currentWorkshop = currentWorkshop;
     if (!localStorage.getItem('sv_cleared_entries_v1')) {
       localStorage.removeItem('sv_inwards');
       localStorage.removeItem('sv_outwards');
@@ -105,11 +115,16 @@ class LocalDataStore {
     this.parts = JSON.parse(localStorage.getItem('sv_parts')) || INITIAL_PARTS;
     this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || [];
     this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || [];
-    // Auto-migrate any legacy inward entries to CNC TURNING
+
+    // Ensure all inwards and outwards have workshop property
     this.inwards.forEach(inv => {
+      if (!inv.workshop) inv.workshop = 'siddhivinayak';
       if (inv.process_required === 'BROACHING / CNC TURNING') {
         inv.process_required = 'CNC TURNING';
       }
+    });
+    this.outwards.forEach(out => {
+      if (!out.workshop) out.workshop = 'siddhivinayak';
     });
 
     // Auto-repair: Ensure all inward items have unique IDs across all inwards
@@ -133,6 +148,10 @@ class LocalDataStore {
     this.save();
   }
 
+  setCurrentWorkshop(ws) {
+    this.currentWorkshop = ws;
+  }
+
   clearAllEntries() {
     this.inwards = [];
     this.outwards = [];
@@ -146,10 +165,13 @@ class LocalDataStore {
     localStorage.setItem('sv_outwards', JSON.stringify(this.outwards));
   }
 
-  getDashboard() {
+  getDashboard(workshop = this.currentWorkshop) {
+    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
+    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+
     let totalInwardQty = 0;
     let totalInwardVal = 0;
-    this.inwards.forEach(inv => {
+    wsInwards.forEach(inv => {
       inv.items.forEach(it => {
         totalInwardQty += Number(it.quantity || 0);
         totalInwardVal += Number(it.amount || 0);
@@ -159,7 +181,7 @@ class LocalDataStore {
     let totalOutwardQty = 0;
     let totalWasteQty = 0;
     let totalOutwardVal = 0;
-    this.outwards.forEach(out => {
+    wsOutwards.forEach(out => {
       out.items.forEach(it => {
         totalOutwardQty += Number(it.quantity || 0);
         totalWasteQty += Number(it.waste_quantity || 0);
@@ -168,15 +190,14 @@ class LocalDataStore {
     });
 
     const currentFloorStock = totalInwardQty - (totalOutwardQty + totalWasteQty);
-
-    const partWise = this.getStockPartWise();
+    const partWise = this.getStockPartWise(workshop);
 
     return {
       kpis: {
         parties_count: this.parties.length,
         parts_count: this.parts.length,
-        inward_challans_count: this.inwards.length,
-        outward_challans_count: this.outwards.length,
+        inward_challans_count: wsInwards.length,
+        outward_challans_count: wsOutwards.length,
         total_inward_qty: totalInwardQty,
         total_outward_qty: totalOutwardQty,
         total_waste_qty: totalWasteQty,
@@ -184,17 +205,20 @@ class LocalDataStore {
         total_inward_value: totalInwardVal,
         total_outward_value: totalOutwardVal
       },
-      recent_inwards: this.inwards.slice(-5).reverse(),
-      recent_outwards: this.outwards.slice(-5).reverse(),
+      recent_inwards: wsInwards.slice(-5).reverse(),
+      recent_outwards: wsOutwards.slice(-5).reverse(),
       top_parts_stock: partWise.slice(0, 6)
     };
   }
 
-  getStockPartWise() {
+  getStockPartWise(workshop = this.currentWorkshop) {
+    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
+    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+
     return this.parts.map(part => {
       let inQty = 0;
       const partySet = new Set();
-      this.inwards.forEach(inv => {
+      wsInwards.forEach(inv => {
         inv.items.forEach(it => {
           if (it.part_id === part.id) {
             inQty += Number(it.quantity || 0);
@@ -207,7 +231,7 @@ class LocalDataStore {
       let wasteQty = 0;
       let machineRejQty = 0;
       let forgingRejQty = 0;
-      this.outwards.forEach(out => {
+      wsOutwards.forEach(out => {
         out.items.forEach(it => {
           if (it.part_id === part.id) {
             outQty += Number(it.quantity || 0);
@@ -239,11 +263,14 @@ class LocalDataStore {
     });
   }
 
-  getStockPartyWise() {
+  getStockPartyWise(workshop = this.currentWorkshop) {
+    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
+    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+
     return this.parties.map(party => {
       const partMap = {};
 
-      this.inwards.filter(inv => inv.party_id === party.id).forEach(inv => {
+      wsInwards.filter(inv => inv.party_id === party.id).forEach(inv => {
         inv.items.forEach(it => {
           if (!partMap[it.part_id]) {
             const p = this.parts.find(x => x.id === it.part_id) || {};
@@ -265,7 +292,7 @@ class LocalDataStore {
         });
       });
 
-      this.outwards.filter(out => out.party_id === party.id).forEach(out => {
+      wsOutwards.filter(out => out.party_id === party.id).forEach(out => {
         out.items.forEach(it => {
           if (!partMap[it.part_id]) {
             const p = this.parts.find(x => x.id === it.part_id) || {};
@@ -306,9 +333,9 @@ class LocalDataStore {
     });
   }
 
-  getMatrix(partyId, partId) {
+  getMatrix(partyId, partId, workshop = this.currentWorkshop) {
     const list = [];
-    const partyWise = this.getStockPartyWise();
+    const partyWise = this.getStockPartyWise(workshop);
     partyWise.forEach(party => {
       if (partyId && Number(party.id) !== Number(partyId)) return;
       party.parts.forEach(part => {
@@ -333,9 +360,12 @@ class LocalDataStore {
     return list;
   }
 
-  getLedger(partyId, partId) {
+  getLedger(partyId, partId, workshop = this.currentWorkshop) {
     const txs = [];
-    this.inwards.forEach(inv => {
+    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
+    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+
+    wsInwards.forEach(inv => {
       if (partyId && Number(inv.party_id) !== Number(partyId)) return;
       inv.items.forEach(it => {
         if (partId && Number(it.part_id) !== Number(partId)) return;
@@ -362,7 +392,7 @@ class LocalDataStore {
       });
     });
 
-    this.outwards.forEach(out => {
+    wsOutwards.forEach(out => {
       if (partyId && Number(out.party_id) !== Number(partyId)) return;
       out.items.forEach(it => {
         if (partId && Number(it.part_id) !== Number(partId)) return;
@@ -403,10 +433,10 @@ class LocalDataStore {
     };
   }
 
-  getPartyParts(partyId) {
+  getPartyParts(partyId, workshop = this.currentWorkshop) {
     if (!partyId) return [];
     const pId = Number(partyId);
-    const partyWise = this.getStockPartyWise();
+    const partyWise = this.getStockPartyWise(workshop);
     const party = partyWise.find(p => Number(p.id) === pId);
     if (!party || !party.parts) return [];
     return party.parts.map(pt => ({
@@ -419,14 +449,18 @@ class LocalDataStore {
     }));
   }
 
-  getInwardLots(partyId, partId, excludeOutwardId = null) {
+  getInwardLots(partyId, partId, excludeOutwardId = null, workshop = this.currentWorkshop) {
     if (!partyId || !partId) return [];
     const pId = Number(partyId);
     const ptId = Number(partId);
     const exclOutId = excludeOutwardId ? Number(excludeOutwardId) : null;
+    const ws = workshop || this.currentWorkshop;
     const lots = [];
 
-    this.inwards
+    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === ws);
+    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === ws);
+
+    wsInwards
       .filter(inv => Number(inv.party_id) === pId)
       .forEach(inv => {
         inv.items
@@ -436,7 +470,7 @@ class LocalDataStore {
             let waste = 0;
             let mRejTotal = 0;
             let fRejTotal = 0;
-            this.outwards.forEach(out => {
+            wsOutwards.forEach(out => {
               if (exclOutId && Number(out.id) === exclOutId) return;
               out.items.forEach(ot => {
                 if (
@@ -477,7 +511,8 @@ class LocalDataStore {
               machine_rejection: mRejTotal,
               forging_rejection: fRejTotal,
               available_stock: available,
-              unit: it.unit || 'NOS'
+              unit: it.unit || 'NOS',
+              workshop: inv.workshop || 'siddhivinayak'
             });
           });
       });
@@ -486,6 +521,7 @@ class LocalDataStore {
   }
 
   createInward(data) {
+    const ws = data.workshop || this.currentWorkshop || 'siddhivinayak';
     const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
     const newId = (this.inwards.length ? Math.max(...this.inwards.map(x => x.id)) : 0) + 1;
     let totQty = 0;
@@ -526,6 +562,7 @@ class LocalDataStore {
 
     const record = {
       id: newId,
+      workshop: ws,
       challan_no: data.challan_no,
       challan_date: data.challan_date,
       party_id: Number(data.party_id),
@@ -549,6 +586,7 @@ class LocalDataStore {
   }
 
   createOutward(data) {
+    const ws = data.workshop || this.currentWorkshop || 'siddhivinayak';
     const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
     const newId = (this.outwards.length ? Math.max(...this.outwards.map(x => x.id)) : 0) + 1;
     let totQty = 0;
@@ -593,7 +631,8 @@ class LocalDataStore {
 
     const record = {
       id: newId,
-      challan_no: (data.challan_no && data.challan_no.trim()) || getNextOutwardChallanNo(this.outwards),
+      workshop: ws,
+      challan_no: (data.challan_no && data.challan_no.trim()) || getNextOutwardChallanNo(this.outwards, ws),
       challan_date: data.challan_date,
       party_id: Number(data.party_id),
       party_name: party.name,
@@ -624,6 +663,7 @@ class LocalDataStore {
       throw new Error("Inward challan not found");
     }
     const oldChallan = this.inwards[idx];
+    const ws = data.workshop || oldChallan.workshop || this.currentWorkshop || 'siddhivinayak';
     const oldChallanNo = oldChallan.challan_no;
     const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
 
@@ -669,6 +709,7 @@ class LocalDataStore {
 
     const updated = {
       ...oldChallan,
+      workshop: ws,
       challan_no: data.challan_no,
       challan_date: data.challan_date,
       party_id: Number(data.party_id),
@@ -709,6 +750,7 @@ class LocalDataStore {
       throw new Error("Outward challan not found");
     }
     const oldChallan = this.outwards[idx];
+    const ws = data.workshop || oldChallan.workshop || this.currentWorkshop || 'siddhivinayak';
     const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
 
     let totQty = 0;
@@ -753,6 +795,7 @@ class LocalDataStore {
 
     const updated = {
       ...oldChallan,
+      workshop: ws,
       challan_no: data.challan_no,
       challan_date: data.challan_date,
       party_id: Number(data.party_id),
@@ -814,6 +857,17 @@ export const api = {
   getBackendStatus: () => isLiveBackend,
   setLiveBackend: (val) => { isLiveBackend = val; },
 
+  getCurrentWorkshop: () => currentWorkshop,
+  setCurrentWorkshop: (ws) => {
+    currentWorkshop = ws;
+    try {
+      localStorage.setItem('sv_current_workshop', ws);
+    } catch (e) {
+      // ignore
+    }
+    localStore.setCurrentWorkshop(ws);
+  },
+
   async checkHealth() {
     try {
       const res = await fetch(`${API_BASE}/../index.php?json=1`, { method: 'GET' });
@@ -834,12 +888,13 @@ export const api = {
     return await res.json();
   },
 
-  async getDashboard() {
-    const res = await fetchFromBackend('dashboard.php');
+  async getDashboard(workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const res = await fetchFromBackend(`dashboard.php?workshop=${ws}`);
     if (res.data && res.data.status === 'success') {
       return { ...res.data.data, isLive: true };
     }
-    return { ...localStore.getDashboard(), isLive: false };
+    return { ...localStore.getDashboard(ws), isLive: false };
   },
 
   async getParties() {
@@ -891,12 +946,13 @@ export const api = {
     return { status: 'success', isLive: false };
   },
 
-  async getParts() {
-    const res = await fetchFromBackend('parts.php');
+  async getParts(workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const res = await fetchFromBackend(`parts.php?workshop=${ws}`);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.getStockPartWise(), isLive: false };
+    return { data: localStore.getStockPartWise(ws), isLive: false };
   },
 
   async createPart(part) {
@@ -940,12 +996,13 @@ export const api = {
     return { status: 'success', isLive: false };
   },
 
-  async getInwards() {
-    const res = await fetchFromBackend('inward.php');
+  async getInwards(workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const res = await fetchFromBackend(`inward.php?workshop=${ws}`);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.inwards, isLive: false };
+    return { data: localStore.inwards.filter(i => (i.workshop || 'siddhivinayak') === ws), isLive: false };
   },
 
   async getInward(id) {
@@ -958,26 +1015,30 @@ export const api = {
   },
 
   async createInward(data) {
+    const ws = data.workshop || currentWorkshop;
+    const payload = { ...data, workshop: ws };
     const res = await fetchFromBackend('inward.php', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
-    const record = localStore.createInward(data);
+    const record = localStore.createInward(payload);
     return { status: 'success', data: record, isLive: false };
   },
 
   async updateInward(data) {
+    const ws = data.workshop || currentWorkshop;
+    const payload = { ...data, workshop: ws };
     const res = await fetchFromBackend('inward.php', {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
-    const record = localStore.updateInward(data);
+    const record = localStore.updateInward(payload);
     return { status: 'success', data: record, isLive: false };
   },
 
@@ -991,12 +1052,13 @@ export const api = {
     return { status: 'success', isLive: false };
   },
 
-  async getOutwards() {
-    const res = await fetchFromBackend('outward.php');
+  async getOutwards(workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const res = await fetchFromBackend(`outward.php?workshop=${ws}`);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.outwards, isLive: false };
+    return { data: localStore.outwards.filter(o => (o.workshop || 'siddhivinayak') === ws), isLive: false };
   },
 
   async getOutward(id) {
@@ -1009,26 +1071,30 @@ export const api = {
   },
 
   async createOutward(data) {
+    const ws = data.workshop || currentWorkshop;
+    const payload = { ...data, workshop: ws };
     const res = await fetchFromBackend('outward.php', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
-    const record = localStore.createOutward(data);
+    const record = localStore.createOutward(payload);
     return { status: 'success', data: record, isLive: false };
   },
 
   async updateOutward(data) {
+    const ws = data.workshop || currentWorkshop;
+    const payload = { ...data, workshop: ws };
     const res = await fetchFromBackend('outward.php', {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
-    const record = localStore.updateOutward(data);
+    const record = localStore.updateOutward(payload);
     return { status: 'success', data: record, isLive: false };
   },
 
@@ -1042,25 +1108,28 @@ export const api = {
     return { status: 'success', isLive: false };
   },
 
-  async getPartyParts(partyId) {
-    const res = await fetchFromBackend(`inward.php?action=party_parts&party_id=${partyId}`);
+  async getPartyParts(partyId, workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const res = await fetchFromBackend(`inward.php?action=party_parts&party_id=${partyId}&workshop=${ws}`);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.getPartyParts(partyId), isLive: false };
+    return { data: localStore.getPartyParts(partyId, ws), isLive: false };
   },
 
-  async getInwardLots(partyId, partId, excludeOutwardId = null) {
-    const query = `inward.php?action=part_lots&party_id=${partyId}&part_id=${partId}${excludeOutwardId ? '&exclude_outward_id=' + excludeOutwardId : ''}`;
+  async getInwardLots(partyId, partId, excludeOutwardId = null, workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const query = `inward.php?action=part_lots&party_id=${partyId}&part_id=${partId}&workshop=${ws}${excludeOutwardId ? '&exclude_outward_id=' + excludeOutwardId : ''}`;
     const res = await fetchFromBackend(query);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.getInwardLots(partyId, partId, excludeOutwardId), isLive: false };
+    return { data: localStore.getInwardLots(partyId, partId, excludeOutwardId, ws), isLive: false };
   },
 
   async getStock(type = 'part_wise', params = {}) {
-    let query = `stock.php?type=${type}`;
+    const ws = params.workshop || currentWorkshop;
+    let query = `stock.php?type=${type}&workshop=${ws}`;
     if (params.party_id) query += `&party_id=${params.party_id}`;
     if (params.part_id) query += `&part_id=${params.part_id}`;
 
@@ -1070,13 +1139,13 @@ export const api = {
     }
 
     if (type === 'part_wise') {
-      return { data: localStore.getStockPartWise(), isLive: false };
+      return { data: localStore.getStockPartWise(ws), isLive: false };
     } else if (type === 'party_wise') {
-      return { data: localStore.getStockPartyWise(), isLive: false };
+      return { data: localStore.getStockPartyWise(ws), isLive: false };
     } else if (type === 'matrix') {
-      return { data: localStore.getMatrix(params.party_id, params.part_id), isLive: false };
+      return { data: localStore.getMatrix(params.party_id, params.part_id, ws), isLive: false };
     } else if (type === 'ledger') {
-      const resLedger = localStore.getLedger(params.party_id, params.part_id);
+      const resLedger = localStore.getLedger(params.party_id, params.part_id, ws);
       return { data: resLedger.data, current_balance: resLedger.current_balance, isLive: false };
     }
   }

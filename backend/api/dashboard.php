@@ -7,28 +7,44 @@ $db = new Database();
 $conn = $db->getConnection();
 
 try {
+    $workshop = $_GET['workshop'] ?? 'siddhivinayak';
+
     // 1. Total counts
     $partiesCount = (int)$conn->query("SELECT COUNT(*) FROM parties")->fetchColumn();
     $partsCount = (int)$conn->query("SELECT COUNT(*) FROM parts")->fetchColumn();
-    $inwardChallanCount = (int)$conn->query("SELECT COUNT(*) FROM inward_challans")->fetchColumn();
-    $outwardChallanCount = (int)$conn->query("SELECT COUNT(*) FROM outward_challans")->fetchColumn();
+    
+    $inCountStmt = $conn->prepare("SELECT COUNT(*) FROM inward_challans WHERE workshop = :ws");
+    $inCountStmt->execute([':ws' => $workshop]);
+    $inwardChallanCount = (int)$inCountStmt->fetchColumn();
 
-    // 2. Total Inward Qty and Value
-    $inwardTotals = $conn->query("
-        SELECT 
-            COALESCE(SUM(quantity), 0) as total_inward_qty,
-            COALESCE(SUM(amount), 0) as total_inward_val
-        FROM inward_items
-    ")->fetch();
+    $outCountStmt = $conn->prepare("SELECT COUNT(*) FROM outward_challans WHERE workshop = :ws");
+    $outCountStmt->execute([':ws' => $workshop]);
+    $outwardChallanCount = (int)$outCountStmt->fetchColumn();
 
-    // 3. Total Outward Qty and Waste
-    $outwardTotals = $conn->query("
+    // 2. Total Inward Qty and Value for selected workshop
+    $inTotalsStmt = $conn->prepare("
         SELECT 
-            COALESCE(SUM(quantity), 0) as total_outward_qty,
-            COALESCE(SUM(waste_quantity), 0) as total_waste_qty,
-            COALESCE(SUM(amount), 0) as total_outward_val
-        FROM outward_items
-    ")->fetch();
+            COALESCE(SUM(ii.quantity), 0) as total_inward_qty,
+            COALESCE(SUM(ii.amount), 0) as total_inward_val
+        FROM inward_items ii
+        JOIN inward_challans ic ON ii.inward_id = ic.id
+        WHERE ic.workshop = :ws
+    ");
+    $inTotalsStmt->execute([':ws' => $workshop]);
+    $inwardTotals = $inTotalsStmt->fetch();
+
+    // 3. Total Outward Qty and Waste for selected workshop
+    $outTotalsStmt = $conn->prepare("
+        SELECT 
+            COALESCE(SUM(oi.quantity), 0) as total_outward_qty,
+            COALESCE(SUM(oi.waste_quantity), 0) as total_waste_qty,
+            COALESCE(SUM(oi.amount), 0) as total_outward_val
+        FROM outward_items oi
+        JOIN outward_challans oc ON oi.outward_id = oc.id
+        WHERE oc.workshop = :ws
+    ");
+    $outTotalsStmt->execute([':ws' => $workshop]);
+    $outwardTotals = $outTotalsStmt->fetch();
 
     $totalInwardQty = (float)$inwardTotals['total_inward_qty'];
     $totalOutwardQty = (float)$outwardTotals['total_outward_qty'];
@@ -36,53 +52,69 @@ try {
     $currentFloorStock = $totalInwardQty - ($totalOutwardQty + $totalWasteQty);
 
     // 4. Recent 5 Inward Challans
-    $recentInwards = $conn->query("
+    $recentInStmt = $conn->prepare("
         SELECT 
-            ic.id, ic.challan_no, ic.challan_date, ic.vehicle_no, ic.process_required,
+            ic.id, ic.challan_no, ic.challan_date, ic.vehicle_no, ic.process_required, ic.workshop,
             p.name as party_name,
             COUNT(ii.id) as item_count,
             COALESCE(SUM(ii.quantity), 0) as total_qty
         FROM inward_challans ic
         JOIN parties p ON ic.party_id = p.id
         LEFT JOIN inward_items ii ON ic.id = ii.inward_id
+        WHERE ic.workshop = :ws
         GROUP BY ic.id
         ORDER BY ic.challan_date DESC, ic.id DESC
         LIMIT 5
-    ")->fetchAll();
+    ");
+    $recentInStmt->execute([':ws' => $workshop]);
+    $recentInwards = $recentInStmt->fetchAll();
 
     // 5. Recent 5 Outward Challans
-    $recentOutwards = $conn->query("
+    $recentOutStmt = $conn->prepare("
         SELECT 
-            oc.id, oc.challan_no, oc.challan_date, oc.vehicle_no, oc.process_carried_out,
+            oc.id, oc.challan_no, oc.challan_date, oc.vehicle_no, oc.process_carried_out, oc.workshop,
             p.name as party_name,
             COUNT(oi.id) as item_count,
             COALESCE(SUM(oi.quantity), 0) as total_qty
         FROM outward_challans oc
         JOIN parties p ON oc.party_id = p.id
         LEFT JOIN outward_items oi ON oc.id = oi.outward_id
+        WHERE oc.workshop = :ws
         GROUP BY oc.id
         ORDER BY oc.challan_date DESC, oc.id DESC
         LIMIT 5
-    ")->fetchAll();
+    ");
+    $recentOutStmt->execute([':ws' => $workshop]);
+    $recentOutwards = $recentOutStmt->fetchAll();
 
     // 6. Top Parts Stock
-    $topPartsStock = $conn->query("
+    $topPartsStmt = $conn->prepare("
         SELECT 
             p.part_no, p.description, p.grade,
-            COALESCE(SUM(ii.quantity), 0) as inward_qty,
+            COALESCE(inward_data.in_qty, 0) as inward_qty,
             COALESCE(outward_data.out_qty, 0) as outward_qty,
-            (COALESCE(SUM(ii.quantity), 0) - COALESCE(outward_data.out_qty, 0)) as current_stock
+            (COALESCE(inward_data.in_qty, 0) - COALESCE(outward_data.out_qty, 0)) as current_stock
         FROM parts p
-        LEFT JOIN inward_items ii ON p.id = ii.part_id
         LEFT JOIN (
-            SELECT part_id, SUM(quantity + waste_quantity) as out_qty
-            FROM outward_items
-            GROUP BY part_id
+            SELECT ii.part_id, SUM(ii.quantity) as in_qty
+            FROM inward_items ii
+            JOIN inward_challans ic ON ii.inward_id = ic.id
+            WHERE ic.workshop = :ws1
+            GROUP BY ii.part_id
+        ) inward_data ON p.id = inward_data.part_id
+        LEFT JOIN (
+            SELECT oi.part_id, SUM(oi.quantity + oi.waste_quantity) as out_qty
+            FROM outward_items oi
+            JOIN outward_challans oc ON oi.outward_id = oc.id
+            WHERE oc.workshop = :ws2
+            GROUP BY oi.part_id
         ) outward_data ON p.id = outward_data.part_id
         GROUP BY p.id
         ORDER BY current_stock DESC
         LIMIT 6
-    ")->fetchAll();
+    ");
+    $topPartsStmt->execute([':ws1' => $workshop, ':ws2' => $workshop]);
+    $topPartsStock = $topPartsStmt->fetchAll();
 
     sendResponse(200, [
         "status" => "success",

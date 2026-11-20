@@ -21,7 +21,7 @@ import {
 import { api } from '../services/api';
 import { exportPartyWiseToExcel, exportFullInventoryExcel } from '../utils/excelExport';
 
-export default function StockManagement({ onNavigateWithData }) {
+export default function StockManagement({ onNavigateWithData, currentWorkshop = 'siddhivinayak' }) {
   const [subTab, setSubTab] = useState('part_wise'); // 'part_wise' | 'party_wise' | 'matrix' | 'ledger'
   const [partWiseData, setPartWiseData] = useState([]);
   const [partyWiseData, setPartyWiseData] = useState([]);
@@ -42,16 +42,16 @@ export default function StockManagement({ onNavigateWithData }) {
 
   useEffect(() => {
     loadMasters();
-  }, []);
+  }, [currentWorkshop]);
 
   useEffect(() => {
     loadStockData();
-  }, [subTab, selectedPartyId, selectedPartId]);
+  }, [subTab, selectedPartyId, selectedPartId, currentWorkshop]);
 
   const loadMasters = async () => {
     const [pRes, partsRes] = await Promise.all([
       api.getParties(),
-      api.getParts()
+      api.getParts(currentWorkshop)
     ]);
     setPartiesList(pRes.data || []);
     setPartsList(partsRes.data || []);
@@ -61,21 +61,23 @@ export default function StockManagement({ onNavigateWithData }) {
     setLoading(true);
     try {
       if (subTab === 'part_wise') {
-        const res = await api.getStock('part_wise');
+        const res = await api.getStock('part_wise', { workshop: currentWorkshop });
         setPartWiseData(res.data || []);
       } else if (subTab === 'party_wise') {
-        const res = await api.getStock('party_wise');
+        const res = await api.getStock('party_wise', { workshop: currentWorkshop });
         setPartyWiseData(res.data || []);
       } else if (subTab === 'matrix') {
         const res = await api.getStock('matrix', {
           party_id: selectedPartyId,
-          part_id: selectedPartId
+          part_id: selectedPartId,
+          workshop: currentWorkshop
         });
         setMatrixData(res.data || []);
       } else if (subTab === 'ledger') {
         const res = await api.getStock('ledger', {
           party_id: selectedPartyId,
-          part_id: selectedPartId
+          part_id: selectedPartId,
+          workshop: currentWorkshop
         });
         setLedgerData(res || { current_balance: 0, data: [] });
       }
@@ -102,7 +104,7 @@ export default function StockManagement({ onNavigateWithData }) {
     let pWise = partyWiseData;
     if (!pWise || pWise.length === 0) {
       try {
-        const res = await api.getStock('party_wise');
+        const res = await api.getStock('party_wise', { workshop: currentWorkshop });
         pWise = res.data || [];
         setPartyWiseData(pWise);
       } catch (err) {
@@ -138,7 +140,7 @@ export default function StockManagement({ onNavigateWithData }) {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `stock_report_${subTab}_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `stock_report_${currentWorkshop}_${subTab}_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -157,7 +159,7 @@ export default function StockManagement({ onNavigateWithData }) {
 
     setLoadingLots(prev => ({ ...prev, [key]: true }));
     try {
-      const res = await api.getInwardLots(partyId, partId);
+      const res = await api.getInwardLots(partyId, partId, null, currentWorkshop);
       setExpandedPartLots(prev => ({
         ...prev,
         [key]: res.data || []
@@ -177,16 +179,16 @@ export default function StockManagement({ onNavigateWithData }) {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-sky-700 bg-sky-50 px-2 py-0.5 rounded">
-                Live Inventory
+              <span className="text-xs font-semibold uppercase tracking-wider text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">
+                {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}
               </span>
-              <span className="text-xs text-slate-500">CNC Material Balance</span>
+              <span className="text-xs text-slate-500">Live Inventory • CNC Material Balance</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 mt-1">
               Stock Management
             </h1>
             <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-              Maintain inventory part-wise, party-wise, and audit complete inward/outward movement history.
+              Maintain inventory part-wise, party-wise, and audit complete inward/outward movement history for {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak Industries'}.
             </p>
           </div>
 

@@ -11,12 +11,29 @@ import {
   CheckCircle2,
   AlertTriangle,
   RotateCw,
-  Lock
+  Lock,
+  Building2
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefreshBackend, onRunSetup, onLock }) {
+const WORKSHOPS = [
+  { id: 'siddhivinayak', label: '1. Siddhivinayak Industries', name: 'Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
+  { id: 'gayatri', label: '2. Gayatri Industries', name: 'Gayatri Industries', shortName: 'Gayatri', code: 'GI' }
+];
+
+export default function Navbar({ 
+  activeTab, 
+  setActiveTab, 
+  backendStatus, 
+  onRefreshBackend, 
+  onRunSetup, 
+  onLock,
+  currentWorkshop = 'siddhivinayak',
+  onWorkshopChange
+}) {
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMessage, setSetupMessage] = useState(null);
+
+  const activeWorkshopObj = WORKSHOPS.find(w => w.id === currentWorkshop) || WORKSHOPS[0];
 
   const handleSetup = async () => {
     setSetupLoading(true);
@@ -50,11 +67,11 @@ export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefre
           {/* Logo & Company Title */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-500 flex items-center justify-center font-bold text-lg text-white shadow-md shadow-sky-900/30">
-              SV
+              {activeWorkshopObj.code}
             </div>
             <div>
               <div className="font-bold text-base sm:text-lg tracking-tight text-white flex items-center gap-1.5">
-                Siddhivinayak CNC
+                {activeWorkshopObj.name}
                 <span className="text-[10px] uppercase font-semibold tracking-wider px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">
                   Workshop
                 </span>
@@ -94,19 +111,34 @@ export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefre
             })}
           </nav>
 
-          {/* Backend & DB Status Widget */}
-          <div className="flex items-center space-x-3">
+          {/* Top-Right Controls: Workshop Selector & Status */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            
+            {/* Workshop Selector */}
+            <div className="flex items-center space-x-1.5 bg-slate-800/95 hover:bg-slate-800 border border-sky-500/50 rounded-lg px-2.5 py-1.5 shadow-sm transition">
+              <Building2 className="w-4 h-4 text-sky-400 shrink-0" />
+              <select
+                value={currentWorkshop}
+                onChange={(e) => onWorkshopChange && onWorkshopChange(e.target.value)}
+                className="bg-transparent text-xs sm:text-sm font-semibold text-white focus:outline-none cursor-pointer pr-1"
+                title="Switch Active Workshop"
+              >
+                <option value="siddhivinayak" className="bg-slate-900 text-white font-medium">1. Siddhivinayak Industries</option>
+                <option value="gayatri" className="bg-slate-900 text-white font-medium">2. Gayatri Industries</option>
+              </select>
+            </div>
+
             {backendStatus.online ? (
-              <div className="flex items-center space-x-2 bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-1 rounded-full text-xs text-emerald-400">
+              <div className="hidden sm:flex items-center space-x-2 bg-emerald-950/60 border border-emerald-800/80 px-2.5 py-1 rounded-full text-xs text-emerald-400">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span className="hidden sm:inline font-medium">PHP MySQL Connected</span>
-                <span className="sm:hidden font-medium">MySQL</span>
+                <span className="hidden lg:inline font-medium">PHP MySQL</span>
+                <span className="lg:hidden font-medium">MySQL</span>
               </div>
             ) : (
-              <div className="flex items-center space-x-2 bg-amber-950/60 border border-amber-800/80 px-2.5 py-1 rounded-full text-xs text-amber-400">
+              <div className="hidden sm:flex items-center space-x-2 bg-amber-950/60 border border-amber-800/80 px-2.5 py-1 rounded-full text-xs text-amber-400">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline font-medium">Local Fast-Store</span>
-                <span className="sm:hidden font-medium">Local</span>
+                <span className="hidden lg:inline font-medium">Local Fast-Store</span>
+                <span className="lg:hidden font-medium">Local</span>
                 <button 
                   onClick={onRefreshBackend}
                   title="Test PHP backend connection"
@@ -121,7 +153,7 @@ export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefre
               onClick={handleSetup}
               disabled={setupLoading}
               title="Initialize / Seed MySQL Database"
-              className="hidden lg:flex items-center space-x-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+              className="hidden xl:flex items-center space-x-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
             >
               <Database className="w-3.5 h-3.5 text-sky-400" />
               <span>{setupLoading ? "Running DB Setup..." : "DB Setup"}</span>
@@ -171,4 +203,3 @@ export default function Navbar({ activeTab, setActiveTab, backendStatus, onRefre
     </header>
   );
 }
-

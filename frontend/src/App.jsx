@@ -15,6 +15,11 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(() => {
     return sessionStorage.getItem('sv_system_unlocked') !== 'true';
   });
+  const [currentWorkshop, setCurrentWorkshop] = useState(() => {
+    const saved = localStorage.getItem('sv_current_workshop');
+    if (saved) return saved;
+    return api.getCurrentWorkshop ? api.getCurrentWorkshop() : 'siddhivinayak';
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [backendStatus, setBackendStatus] = useState({ online: false, message: 'Checking...' });
   const [dashboardData, setDashboardData] = useState(null);
@@ -27,21 +32,29 @@ export default function App() {
 
   useEffect(() => {
     checkBackend();
-    loadDashboard();
-  }, []);
+    loadDashboard(currentWorkshop);
+  }, [currentWorkshop]);
 
   const checkBackend = async () => {
     const status = await api.checkHealth();
     setBackendStatus(status);
   };
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (ws = currentWorkshop) => {
     try {
-      const data = await api.getDashboard();
+      const data = await api.getDashboard(ws);
       setDashboardData(data);
     } catch (e) {
       console.error("Dashboard load failed:", e);
     }
+  };
+
+  const handleWorkshopChange = (ws) => {
+    setCurrentWorkshop(ws);
+    if (api.setCurrentWorkshop) {
+      api.setCurrentWorkshop(ws);
+    }
+    loadDashboard(ws);
   };
 
   const handleNavigate = (tab, options = {}) => {
@@ -60,7 +73,7 @@ export default function App() {
   };
 
   const handleActionComplete = () => {
-    loadDashboard();
+    loadDashboard(currentWorkshop);
     checkBackend();
   };
 
@@ -90,15 +103,17 @@ export default function App() {
           setOutwardOpenCreate(false);
           setPrefillOutward(null);
         }}
+        currentWorkshop={currentWorkshop}
+        onWorkshopChange={handleWorkshopChange}
         backendStatus={backendStatus}
         onRefreshBackend={async () => {
           await checkBackend();
-          await loadDashboard();
+          await loadDashboard(currentWorkshop);
         }}
         onRunSetup={async () => {
           const res = await api.runSetup();
           await checkBackend();
-          await loadDashboard();
+          await loadDashboard(currentWorkshop);
           return res;
         }}
         onLock={handleLock}
@@ -111,17 +126,20 @@ export default function App() {
             dashboardData={dashboardData}
             onNavigate={handleNavigate}
             onViewChallan={handleViewChallan}
+            currentWorkshop={currentWorkshop}
           />
         )}
 
         {activeTab === 'stock' && (
           <StockManagement
+            currentWorkshop={currentWorkshop}
             onNavigateWithData={(tab, data) => handleNavigate(tab, data)}
           />
         )}
 
         {activeTab === 'inward' && (
           <InwardChallans
+            currentWorkshop={currentWorkshop}
             onViewChallan={handleViewChallan}
             initialOpenCreate={inwardOpenCreate}
             onActionComplete={handleActionComplete}
@@ -130,6 +148,7 @@ export default function App() {
 
         {activeTab === 'outward' && (
           <OutwardChallans
+            currentWorkshop={currentWorkshop}
             onViewChallan={handleViewChallan}
             initialOpenCreate={outwardOpenCreate}
             prefillData={prefillOutward}
@@ -150,7 +169,9 @@ export default function App() {
       <footer className="no-print bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            <span className="font-bold text-slate-700">Siddhivinayak CNC Workshop</span> • Delivery Challan & Inventory System
+            <span className="font-bold text-slate-700">
+              {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak CNC Workshop'}
+            </span> • Delivery Challan & Inventory System
           </div>
           <div className="flex items-center space-x-4 text-[11px]">
             <span>Frontend: React 19 + Tailwind CSS</span>
@@ -165,6 +186,7 @@ export default function App() {
         <ChallanPrintModal
           challan={printingChallan.data}
           type={printingChallan.type}
+          workshop={printingChallan.data?.workshop || currentWorkshop}
           onClose={() => setPrintingChallan(null)}
         />
       )}
