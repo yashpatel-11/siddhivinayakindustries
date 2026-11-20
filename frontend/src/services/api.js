@@ -125,6 +125,9 @@ class LocalDataStore {
     });
     this.outwards.forEach(out => {
       if (!out.workshop) out.workshop = 'siddhivinayak';
+      if (out.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || out.process_carried_out === 'BROACHING / CNC TURNING') {
+        out.process_carried_out = 'CNC TURNING';
+      }
     });
 
     // Auto-repair: Ensure all inward items have unique IDs across all inwards
@@ -642,7 +645,7 @@ class LocalDataStore {
       party_state_code: party.state_code || '24-Gujarat',
       vehicle_no: data.vehicle_no || '',
       eway_bill_no: data.eway_bill_no || '',
-      process_carried_out: data.process_carried_out || 'BROACHING / CNC TURNING COMPLETED',
+      process_carried_out: (!data.process_carried_out || data.process_carried_out === 'BROACHING / CNC TURNING COMPLETED') ? 'CNC TURNING' : data.process_carried_out,
       remarks: data.remarks || '',
       total_quantity: totQty,
       total_waste: totWaste,
@@ -806,7 +809,7 @@ class LocalDataStore {
       party_state_code: party.state_code || oldChallan.party_state_code || '24-Gujarat',
       vehicle_no: data.vehicle_no || '',
       eway_bill_no: data.eway_bill_no || '',
-      process_carried_out: data.process_carried_out || 'BROACHING / CNC TURNING COMPLETED',
+      process_carried_out: (!data.process_carried_out || data.process_carried_out === 'BROACHING / CNC TURNING COMPLETED') ? 'CNC TURNING' : data.process_carried_out,
       remarks: data.remarks || '',
       total_quantity: totQty,
       total_waste: totWaste,

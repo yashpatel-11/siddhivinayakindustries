@@ -333,7 +333,11 @@ export default function Dashboard({
                       <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
                         <span>{out.challan_date}</span>
                         <span>•</span>
-                        <span className="text-indigo-700 font-medium">{out.process_carried_out || 'Completed'}</span>
+                        <span className="text-indigo-700 font-medium">
+                          {(out.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || out.process_carried_out === 'BROACHING / CNC TURNING')
+                            ? 'CNC TURNING'
+                            : (out.process_carried_out || 'CNC TURNING')}
+                        </span>
                       </div>
                     </div>
 

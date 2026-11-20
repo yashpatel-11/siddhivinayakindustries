@@ -111,7 +111,7 @@ switch ($method) {
                 ':party_id' => $data['party_id'],
                 ':vehicle_no' => !empty($data['vehicle_no']) ? trim($data['vehicle_no']) : null,
                 ':eway_bill_no' => !empty($data['eway_bill_no']) ? trim($data['eway_bill_no']) : null,
-                ':process_carried_out' => !empty($data['process_carried_out']) ? trim($data['process_carried_out']) : 'BROACHING / CNC TURNING COMPLETED',
+                ':process_carried_out' => !empty($data['process_carried_out']) ? trim($data['process_carried_out']) : 'CNC TURNING',
                 ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null,
                 ':workshop' => $outwardWorkshop
             ]);
@@ -210,7 +210,7 @@ switch ($method) {
                 ':party_id' => $data['party_id'],
                 ':vehicle_no' => !empty($data['vehicle_no']) ? trim($data['vehicle_no']) : null,
                 ':eway_bill_no' => !empty($data['eway_bill_no']) ? trim($data['eway_bill_no']) : null,
-                ':process_carried_out' => !empty($data['process_carried_out']) ? trim($data['process_carried_out']) : 'BROACHING / CNC TURNING COMPLETED',
+                ':process_carried_out' => !empty($data['process_carried_out']) ? trim($data['process_carried_out']) : 'CNC TURNING',
                 ':remarks' => !empty($data['remarks']) ? trim($data['remarks']) : null
             ]);
 

@@ -40,7 +40,7 @@ export default function OutwardChallans({
     party_id: prefillData?.party_id ? String(prefillData.party_id) : '',
     vehicle_no: '',
     eway_bill_no: '',
-    process_carried_out: 'BROACHING / CNC TURNING COMPLETED',
+    process_carried_out: 'CNC TURNING',
     remarks: '',
     items: [
       { 
@@ -454,7 +454,7 @@ export default function OutwardChallans({
         party_id: partyIdStr,
         vehicle_no: data.vehicle_no || '',
         eway_bill_no: data.eway_bill_no || '',
-        process_carried_out: data.process_carried_out || 'BROACHING / CNC TURNING COMPLETED',
+        process_carried_out: (!data.process_carried_out || data.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || data.process_carried_out === 'BROACHING / CNC TURNING') ? 'CNC TURNING' : data.process_carried_out,
         remarks: data.remarks || '',
         items
       });
@@ -564,7 +564,7 @@ export default function OutwardChallans({
       party_id: '',
       vehicle_no: '',
       eway_bill_no: '',
-      process_carried_out: 'BROACHING / CNC TURNING COMPLETED',
+      process_carried_out: 'CNC TURNING',
       remarks: '',
       items: [
         { 
@@ -720,7 +720,9 @@ export default function OutwardChallans({
                     </td>
 
                     <td className="py-3.5 px-4 text-xs font-medium text-indigo-700 uppercase">
-                      {ch.process_carried_out || 'Completed'}
+                      {(ch.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || ch.process_carried_out === 'BROACHING / CNC TURNING')
+                        ? 'CNC TURNING'
+                        : (ch.process_carried_out || 'CNC TURNING')}
                     </td>
 
                     <td className="py-3.5 px-4 text-right font-mono tabular-nums font-semibold text-slate-900">
@@ -906,7 +908,7 @@ export default function OutwardChallans({
                   <label className="block text-xs font-medium text-slate-700 mb-1.5">Process Carried Out</label>
                   <input
                     type="text"
-                    placeholder="e.g. BROACHING COMPLETED"
+                    placeholder="e.g. CNC TURNING"
                     value={formData.process_carried_out}
                     onChange={(e) => setFormData({ ...formData, process_carried_out: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 uppercase"

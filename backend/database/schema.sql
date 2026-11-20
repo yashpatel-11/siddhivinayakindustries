@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS `outward_challans` (
     `party_id` INT NOT NULL,
     `vehicle_no` VARCHAR(50) DEFAULT NULL,
     `eway_bill_no` VARCHAR(50) DEFAULT NULL,
-    `process_carried_out` VARCHAR(255) DEFAULT 'BROACHING / CNC TURNING',
+    `process_carried_out` VARCHAR(255) DEFAULT 'CNC TURNING',
     `remarks` TEXT DEFAULT NULL,
     `workshop` VARCHAR(50) DEFAULT 'siddhivinayak',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
