@@ -12,8 +12,10 @@ CREATE TABLE IF NOT EXISTS `parties` (
     `address` TEXT DEFAULT NULL,
     `phone` VARCHAR(100) DEFAULT NULL,
     `state_code` VARCHAR(50) DEFAULT '24-Gujarat',
+    `workshop` VARCHAR(50) DEFAULT 'siddhivinayak',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX `idx_party_name` (`name`)
+    INDEX `idx_party_name` (`name`),
+    INDEX `idx_party_workshop` (`workshop`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Parts / Components Master
@@ -25,8 +27,10 @@ CREATE TABLE IF NOT EXISTS `parts` (
     `hsn_code` VARCHAR(20) DEFAULT '73261910',
     `default_rate` DECIMAL(10, 2) DEFAULT 0.00,
     `unit` VARCHAR(20) DEFAULT 'NOS',
+    `workshop` VARCHAR(50) DEFAULT 'siddhivinayak',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX `idx_part_no` (`part_no`)
+    INDEX `idx_part_no` (`part_no`),
+    INDEX `idx_part_workshop` (`workshop`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 3. Inward Challans (Jobwork Inward Documents)
@@ -101,19 +105,19 @@ CREATE TABLE IF NOT EXISTS `outward_items` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Sample Seed Data (Based on CNC Workshop Real Challan)
-INSERT INTO `parties` (`id`, `name`, `gstin`, `address`, `phone`, `state_code`) VALUES
-(1, 'AJK FORGE PRIVATE LIMITED', '24AAGCA0436P1ZN', 'PLOT NO. 10 A SURVEY NO. 197 NEAR: MICROMELT PVT.LTD.VERAVAL (SHAPAR), RAJKOT.', '9427867368 / 9313546921', '24-Gujarat'),
-(2, 'MARUTI AUTO COMPONENTS', '24AAECM4189B1Z2', 'GIDC PHASE II, PLOT NO. 45/A, METODA, RAJKOT - 360021', '9825012345', '24-Gujarat'),
-(3, 'SHREE RAM PRECISION TECH', '24AABCS8891D1ZO', 'SHED NO. 8, SAMRAT INDUSTRIAL AREA, GONDAL ROAD, RAJKOT', '9724156789', '24-Gujarat'),
-(4, 'METALIC TECHNOFORGE LIMITED', '24AAKCM6128N1Z2', 'PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024', '9825000000 / 9979000000', '24-Gujarat')
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+INSERT INTO `parties` (`id`, `name`, `gstin`, `address`, `phone`, `state_code`, `workshop`) VALUES
+(1, 'AJK FORGE PRIVATE LIMITED', '24AAGCA0436P1ZN', 'PLOT NO. 10 A SURVEY NO. 197 NEAR: MICROMELT PVT.LTD.VERAVAL (SHAPAR), RAJKOT.', '9427867368 / 9313546921', '24-Gujarat', 'siddhivinayak'),
+(2, 'MARUTI AUTO COMPONENTS', '24AAECM4189B1Z2', 'GIDC PHASE II, PLOT NO. 45/A, METODA, RAJKOT - 360021', '9825012345', '24-Gujarat', 'siddhivinayak'),
+(3, 'SHREE RAM PRECISION TECH', '24AABCS8891D1ZO', 'SHED NO. 8, SAMRAT INDUSTRIAL AREA, GONDAL ROAD, RAJKOT', '9724156789', '24-Gujarat', 'siddhivinayak'),
+(4, 'METALIC TECHNOFORGE LIMITED', '24AAKCM6128N1Z2', 'PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024', '9825000000 / 9979000000', '24-Gujarat', 'gayatri')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `workshop`=VALUES(`workshop`);
 
-INSERT INTO `parts` (`id`, `part_no`, `description`, `grade`, `hsn_code`, `default_rate`, `unit`) VALUES
-(1, 'SG2639BRMC', 'Gear Shaft Machined Component', '20MNCR5', '73261910', 82.00, 'NOS'),
-(2, 'FL-4401-PIN', 'Flange Pinion Pin Bush', 'EN8D', '84834000', 45.00, 'NOS'),
-(3, 'HUB-982-FR', 'Front Hub Precision Spindle', 'EN19', '87082900', 120.00, 'NOS'),
-(4, 'VL-ROD-32', 'Connecting Valve Rod', 'SS304', '73269099', 65.50, 'NOS'),
-(5, 'MF4138', 'GEAR', '20MOCR4', 'B1581', 0.00, 'NOS')
-ON DUPLICATE KEY UPDATE `part_no`=VALUES(`part_no`);
+INSERT INTO `parts` (`id`, `part_no`, `description`, `grade`, `hsn_code`, `default_rate`, `unit`, `workshop`) VALUES
+(1, 'SG2639BRMC', 'Gear Shaft Machined Component', '20MNCR5', '73261910', 82.00, 'NOS', 'siddhivinayak'),
+(2, 'FL-4401-PIN', 'Flange Pinion Pin Bush', 'EN8D', '84834000', 45.00, 'NOS', 'siddhivinayak'),
+(3, 'HUB-982-FR', 'Front Hub Precision Spindle', 'EN19', '87082900', 120.00, 'NOS', 'siddhivinayak'),
+(4, 'VL-ROD-32', 'Connecting Valve Rod', 'SS304', '73269099', 65.50, 'NOS', 'siddhivinayak'),
+(5, 'MF4138', 'GEAR', '20MOCR4', 'B1581', 0.00, 'NOS', 'gayatri')
+ON DUPLICATE KEY UPDATE `part_no`=VALUES(`part_no`), `workshop`=VALUES(`workshop`);
 
 

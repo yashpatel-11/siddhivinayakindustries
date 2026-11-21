@@ -7,6 +7,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const INITIAL_PARTIES = [
   {
     id: 1,
+    workshop: 'siddhivinayak',
     name: "AJK FORGE PRIVATE LIMITED",
     gstin: "24AAGCA0436P1ZN",
     address: "PLOT NO. 10 A SURVEY NO. 197 NEAR: MICROMELT PVT.LTD.VERAVAL (SHAPAR), RAJKOT.",
@@ -16,6 +17,7 @@ const INITIAL_PARTIES = [
   },
   {
     id: 2,
+    workshop: 'siddhivinayak',
     name: "MARUTI AUTO COMPONENTS",
     gstin: "24AAECM4189B1Z2",
     address: "GIDC PHASE II, PLOT NO. 45/A, METODA, RAJKOT - 360021",
@@ -25,6 +27,7 @@ const INITIAL_PARTIES = [
   },
   {
     id: 3,
+    workshop: 'siddhivinayak',
     name: "SHREE RAM PRECISION TECH",
     gstin: "24AABCS8891D1ZO",
     address: "SHED NO. 8, SAMRAT INDUSTRIAL AREA, GONDAL ROAD, RAJKOT",
@@ -34,6 +37,7 @@ const INITIAL_PARTIES = [
   },
   {
     id: 4,
+    workshop: 'gayatri',
     name: "METALIC TECHNOFORGE LIMITED",
     gstin: "24AAKCM6128N1Z2",
     address: "PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024",
@@ -46,6 +50,7 @@ const INITIAL_PARTIES = [
 const INITIAL_PARTS = [
   {
     id: 1,
+    workshop: 'siddhivinayak',
     part_no: "SG2639BRMC",
     description: "Gear Shaft Machined Component",
     grade: "20MNCR5",
@@ -55,6 +60,7 @@ const INITIAL_PARTS = [
   },
   {
     id: 2,
+    workshop: 'siddhivinayak',
     part_no: "FL-4401-PIN",
     description: "Flange Pinion Pin Bush",
     grade: "EN8D",
@@ -64,6 +70,7 @@ const INITIAL_PARTS = [
   },
   {
     id: 3,
+    workshop: 'siddhivinayak',
     part_no: "HUB-982-FR",
     description: "Front Hub Precision Spindle",
     grade: "EN19",
@@ -73,6 +80,7 @@ const INITIAL_PARTS = [
   },
   {
     id: 4,
+    workshop: 'siddhivinayak',
     part_no: "VL-ROD-32",
     description: "Connecting Valve Rod",
     grade: "SS304",
@@ -82,6 +90,7 @@ const INITIAL_PARTS = [
   },
   {
     id: 5,
+    workshop: 'gayatri',
     part_no: "MF4138",
     description: "GEAR",
     grade: "20MOCR4",
@@ -256,6 +265,25 @@ class LocalDataStore {
       this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || [];
       this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || [];
 
+      // Auto-heal parties and parts workshops
+      this.parties.forEach(p => {
+        const pName = String(p.name || '').toUpperCase();
+        if (pName.includes('METALIC') || pName.includes('TECHNOFORGE')) {
+          p.workshop = 'gayatri';
+        } else if (!p.workshop) {
+          p.workshop = 'siddhivinayak';
+        }
+      });
+
+      this.parts.forEach(pt => {
+        const ptNo = String(pt.part_no || '').toUpperCase();
+        if (ptNo.includes('MF4138') || ptNo.includes('MF4137')) {
+          pt.workshop = 'gayatri';
+        } else if (!pt.workshop) {
+          pt.workshop = 'siddhivinayak';
+        }
+      });
+
       // Auto-heal workshops: If party_name is METALIC TECHNOFORGE or challan has MTF-, it belongs to Gayatri!
       this.inwards.forEach(inv => {
         const pName = String(inv.party_name || '').toUpperCase();
@@ -336,8 +364,20 @@ class LocalDataStore {
     localStorage.setItem('sv_outwards', JSON.stringify(this.outwards));
   }
 
+  getParties(workshop = this.currentWorkshop) {
+    this.load();
+    return this.parties.filter(p => matchWorkshop(p.workshop, workshop));
+  }
+
+  getParts(workshop = this.currentWorkshop) {
+    this.load();
+    return this.parts.filter(p => matchWorkshop(p.workshop, workshop));
+  }
+
   getDashboard(workshop = this.currentWorkshop) {
     this.load();
+    const wsParties = this.getParties(workshop);
+    const wsParts = this.getParts(workshop);
     const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
     const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
 
@@ -366,8 +406,8 @@ class LocalDataStore {
 
     return {
       kpis: {
-        parties_count: this.parties.length,
-        parts_count: this.parts.length,
+        parties_count: wsParties.length,
+        parts_count: wsParts.length,
         inward_challans_count: wsInwards.length,
         outward_challans_count: wsOutwards.length,
         total_inward_qty: totalInwardQty,
@@ -387,8 +427,9 @@ class LocalDataStore {
     this.load();
     const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
     const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
+    const wsParts = this.getParts(workshop);
 
-    return this.parts.map(part => {
+    return wsParts.map(part => {
       let inQty = 0;
       const partySet = new Set();
       wsInwards.forEach(inv => {
@@ -440,8 +481,9 @@ class LocalDataStore {
     this.load();
     const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
     const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
+    const wsParties = this.getParties(workshop);
 
-    return this.parties.map(party => {
+    return wsParties.map(party => {
       const partMap = {};
 
       wsInwards.filter(inv => Number(inv.party_id) === Number(party.id)).forEach(inv => {
@@ -1079,24 +1121,29 @@ export const api = {
     return { ...localStore.getDashboard(ws), isLive: false };
   },
 
-  async getParties() {
-    const res = await fetchFromBackend('parties.php');
+  async getParties(workshop = null) {
+    const ws = workshop || currentWorkshop;
+    const res = await fetchFromBackend(`parties.php?workshop=${ws}`);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.parties, isLive: false };
+    localStore.load();
+    return { data: localStore.getParties(ws), isLive: false };
   },
 
-  async createParty(party) {
+  async createParty(party, workshop = null) {
+    const ws = party.workshop || workshop || currentWorkshop;
+    const payload = { ...party, workshop: ws };
     const res = await fetchFromBackend('parties.php', {
       method: 'POST',
-      body: JSON.stringify(party)
+      body: JSON.stringify(payload)
     });
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     const newId = (localStore.parties.length ? Math.max(...localStore.parties.map(p => p.id)) : 0) + 1;
-    const item = { ...party, id: newId, created_at: new Date().toISOString() };
+    const item = { ...payload, id: newId, created_at: new Date().toISOString() };
     localStore.parties.push(item);
     localStore.save();
     return { status: 'success', data: item, isLive: false };
@@ -1110,6 +1157,7 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     const idx = localStore.parties.findIndex(p => p.id === party.id);
     if (idx !== -1) {
       localStore.parties[idx] = { ...localStore.parties[idx], ...party };
@@ -1123,6 +1171,7 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     localStore.parties = localStore.parties.filter(p => p.id !== id);
     localStore.save();
     return { status: 'success', isLive: false };
@@ -1134,19 +1183,23 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
+    localStore.load();
     return { data: localStore.getStockPartWise(ws), isLive: false };
   },
 
-  async createPart(part) {
+  async createPart(part, workshop = null) {
+    const ws = part.workshop || workshop || currentWorkshop;
+    const payload = { ...part, workshop: ws };
     const res = await fetchFromBackend('parts.php', {
       method: 'POST',
-      body: JSON.stringify(part)
+      body: JSON.stringify(payload)
     });
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     const newId = (localStore.parts.length ? Math.max(...localStore.parts.map(p => p.id)) : 0) + 1;
-    const item = { ...part, id: newId, current_stock: 0, total_inward: 0, total_outward: 0 };
+    const item = { ...payload, id: newId, current_stock: 0, total_inward: 0, total_outward: 0 };
     localStore.parts.push(item);
     localStore.save();
     return { status: 'success', data: item, isLive: false };
@@ -1160,6 +1213,7 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     const idx = localStore.parts.findIndex(p => p.id === part.id);
     if (idx !== -1) {
       localStore.parts[idx] = { ...localStore.parts[idx], ...part };
@@ -1173,6 +1227,7 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     localStore.parts = localStore.parts.filter(p => p.id !== id);
     localStore.save();
     return { status: 'success', isLive: false };

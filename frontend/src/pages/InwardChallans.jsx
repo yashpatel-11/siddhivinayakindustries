@@ -61,7 +61,7 @@ export default function InwardChallans({
     try {
       const [chRes, pRes, ptRes] = await Promise.all([
         api.getInwards(currentWorkshop),
-        api.getParties(),
+        api.getParties(currentWorkshop),
         api.getParts(currentWorkshop)
       ]);
       setChallans(chRes.data || []);

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Cog, AlertCircle, X, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function Parts({ onActionComplete }) {
+export default function Parts({ onActionComplete, currentWorkshop = 'siddhivinayak' }) {
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,12 +23,12 @@ export default function Parts({ onActionComplete }) {
 
   useEffect(() => {
     loadParts();
-  }, []);
+  }, [currentWorkshop]);
 
   const loadParts = async () => {
     setLoading(true);
     try {
-      const res = await api.getParts();
+      const res = await api.getParts(currentWorkshop);
       setParts(res.data || []);
     } catch (e) {
       console.error(e);
@@ -76,9 +76,9 @@ export default function Parts({ onActionComplete }) {
     setSubmitting(true);
     try {
       if (editingPart) {
-        await api.updatePart({ ...formData, id: editingPart.id || editingPart.part_id });
+        await api.updatePart({ ...formData, id: editingPart.id || editingPart.part_id, workshop: editingPart.workshop || currentWorkshop });
       } else {
-        await api.createPart(formData);
+        await api.createPart({ ...formData, workshop: currentWorkshop });
       }
       setShowModal(false);
       await loadParts();

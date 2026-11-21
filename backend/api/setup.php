@@ -33,7 +33,13 @@ try {
         $rawPdo->exec("ALTER TABLE `outward_items` ADD COLUMN `forging_rejection` DECIMAL(12, 3) DEFAULT 0.00 AFTER `machine_rejection`");
     } catch (Exception $e) {}
 
-    // Ensure workshop column exists on inward_challans and outward_challans
+    // Ensure workshop column exists on parties, parts, inward_challans and outward_challans
+    try {
+        $rawPdo->exec("ALTER TABLE `parties` ADD COLUMN `workshop` VARCHAR(50) DEFAULT 'siddhivinayak' AFTER `state_code`");
+    } catch (Exception $e) {}
+    try {
+        $rawPdo->exec("ALTER TABLE `parts` ADD COLUMN `workshop` VARCHAR(50) DEFAULT 'siddhivinayak' AFTER `unit`");
+    } catch (Exception $e) {}
     try {
         $rawPdo->exec("ALTER TABLE `inward_challans` ADD COLUMN `workshop` VARCHAR(50) DEFAULT 'siddhivinayak' AFTER `remarks`");
     } catch (Exception $e) {}

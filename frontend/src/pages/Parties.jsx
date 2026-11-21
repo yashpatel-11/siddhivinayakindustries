@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, Building2, Phone, MapPin, X, AlertCircle } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function Parties({ onActionComplete }) {
+export default function Parties({ onActionComplete, currentWorkshop = 'siddhivinayak' }) {
   const [parties, setParties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,12 +22,12 @@ export default function Parties({ onActionComplete }) {
 
   useEffect(() => {
     loadParties();
-  }, []);
+  }, [currentWorkshop]);
 
   const loadParties = async () => {
     setLoading(true);
     try {
-      const res = await api.getParties();
+      const res = await api.getParties(currentWorkshop);
       setParties(res.data || []);
     } catch (e) {
       console.error(e);
@@ -73,9 +73,9 @@ export default function Parties({ onActionComplete }) {
     setSubmitting(true);
     try {
       if (editingParty) {
-        await api.updateParty({ ...formData, id: editingParty.id });
+        await api.updateParty({ ...formData, id: editingParty.id, workshop: editingParty.workshop || currentWorkshop });
       } else {
-        await api.createParty(formData);
+        await api.createParty({ ...formData, workshop: currentWorkshop });
       }
       setShowModal(false);
       await loadParties();

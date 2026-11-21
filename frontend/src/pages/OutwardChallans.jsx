@@ -126,7 +126,7 @@ export default function OutwardChallans({
     try {
       const [chRes, pRes] = await Promise.all([
         api.getOutwards(currentWorkshop),
-        api.getParties()
+        api.getParties(currentWorkshop)
       ]);
       const loadedChallans = chRes.data || [];
       setChallans(loadedChallans);

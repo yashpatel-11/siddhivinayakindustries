@@ -18,16 +18,23 @@ switch ($method) {
             }
             sendResponse(200, ["status" => "success", "data" => $party]);
         } else {
-            // Get all parties with counts of inward challans
+            $ws = $_GET['workshop'] ?? null;
+            $whereClause = $ws ? "WHERE p.workshop = :ws" : "";
             $query = "
                 SELECT 
                     p.*,
                     (SELECT COUNT(*) FROM inward_challans ic WHERE ic.party_id = p.id) as total_inwards,
                     (SELECT COUNT(*) FROM outward_challans oc WHERE oc.party_id = p.id) as total_outwards
                 FROM parties p
+                $whereClause
                 ORDER BY p.name ASC
             ";
-            $stmt = $conn->query($query);
+            $stmt = $conn->prepare($query);
+            if ($ws) {
+                $stmt->execute([':ws' => $ws]);
+            } else {
+                $stmt->execute();
+            }
             $parties = $stmt->fetchAll();
             sendResponse(200, ["status" => "success", "data" => $parties]);
         }
@@ -39,16 +46,18 @@ switch ($method) {
             sendResponse(400, ["status" => "error", "message" => "Party name is required"]);
         }
 
+        $partyWorkshop = !empty($data['workshop']) ? trim($data['workshop']) : 'siddhivinayak';
         $stmt = $conn->prepare("
-            INSERT INTO parties (name, gstin, address, phone, state_code)
-            VALUES (:name, :gstin, :address, :phone, :state_code)
+            INSERT INTO parties (name, gstin, address, phone, state_code, workshop)
+            VALUES (:name, :gstin, :address, :phone, :state_code, :workshop)
         ");
         $stmt->execute([
             ':name' => trim($data['name']),
             ':gstin' => !empty($data['gstin']) ? strtoupper(trim($data['gstin'])) : null,
             ':address' => !empty($data['address']) ? trim($data['address']) : null,
             ':phone' => !empty($data['phone']) ? trim($data['phone']) : null,
-            ':state_code' => !empty($data['state_code']) ? trim($data['state_code']) : '24-Gujarat'
+            ':state_code' => !empty($data['state_code']) ? trim($data['state_code']) : '24-Gujarat',
+            ':workshop' => $partyWorkshop
         ]);
 
         $newId = $conn->lastInsertId();

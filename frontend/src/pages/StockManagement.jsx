@@ -50,7 +50,7 @@ export default function StockManagement({ onNavigateWithData, currentWorkshop = 
 
   const loadMasters = async () => {
     const [pRes, partsRes] = await Promise.all([
-      api.getParties(),
+      api.getParties(currentWorkshop),
       api.getParts(currentWorkshop)
     ]);
     setPartiesList(pRes.data || []);

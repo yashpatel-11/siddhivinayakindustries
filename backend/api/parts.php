@@ -18,7 +18,8 @@ switch ($method) {
             }
             sendResponse(200, ["status" => "success", "data" => $part]);
         } else {
-            // Get all parts with calculated inward, outward, and current stock
+            $ws = $_GET['workshop'] ?? null;
+            $whereClause = $ws ? "WHERE p.workshop = :ws" : "";
             $query = "
                 SELECT 
                     p.*,
@@ -27,18 +28,30 @@ switch ($method) {
                     (COALESCE(inward_data.total_inward, 0) - COALESCE(outward_data.total_outward, 0)) as current_stock
                 FROM parts p
                 LEFT JOIN (
-                    SELECT part_id, SUM(quantity) as total_inward
-                    FROM inward_items
-                    GROUP BY part_id
+                    SELECT ii.part_id, SUM(ii.quantity) as total_inward
+                    FROM inward_items ii
+                    JOIN inward_challans ic ON ii.inward_id = ic.id
+                    " . ($ws ? "WHERE ic.workshop = :ws_in" : "") . "
+                    GROUP BY ii.part_id
                 ) inward_data ON p.id = inward_data.part_id
                 LEFT JOIN (
-                    SELECT part_id, SUM(quantity + waste_quantity) as total_outward
-                    FROM outward_items
-                    GROUP BY part_id
+                    SELECT oi.part_id, SUM(oi.quantity + oi.waste_quantity) as total_outward
+                    FROM outward_items oi
+                    JOIN outward_challans oc ON oi.outward_id = oc.id
+                    " . ($ws ? "WHERE oc.workshop = :ws_out" : "") . "
+                    GROUP BY oi.part_id
                 ) outward_data ON p.id = outward_data.part_id
+                $whereClause
                 ORDER BY p.part_no ASC
             ";
-            $stmt = $conn->query($query);
+            $stmt = $conn->prepare($query);
+            $params = [];
+            if ($ws) {
+                $params[':ws'] = $ws;
+                $params[':ws_in'] = $ws;
+                $params[':ws_out'] = $ws;
+            }
+            $stmt->execute($params);
             $parts = $stmt->fetchAll();
             sendResponse(200, ["status" => "success", "data" => $parts]);
         }
@@ -57,9 +70,10 @@ switch ($method) {
             sendResponse(400, ["status" => "error", "message" => "Part number already exists"]);
         }
 
+        $partWorkshop = !empty($data['workshop']) ? trim($data['workshop']) : 'siddhivinayak';
         $stmt = $conn->prepare("
-            INSERT INTO parts (part_no, description, grade, hsn_code, default_rate, unit)
-            VALUES (:part_no, :description, :grade, :hsn_code, :default_rate, :unit)
+            INSERT INTO parts (part_no, description, grade, hsn_code, default_rate, unit, workshop)
+            VALUES (:part_no, :description, :grade, :hsn_code, :default_rate, :unit, :workshop)
         ");
         $stmt->execute([
             ':part_no' => trim($data['part_no']),
@@ -67,7 +81,8 @@ switch ($method) {
             ':grade' => !empty($data['grade']) ? trim($data['grade']) : null,
             ':hsn_code' => !empty($data['hsn_code']) ? trim($data['hsn_code']) : '73261910',
             ':default_rate' => isset($data['default_rate']) ? (float)$data['default_rate'] : 0.00,
-            ':unit' => !empty($data['unit']) ? trim($data['unit']) : 'NOS'
+            ':unit' => !empty($data['unit']) ? trim($data['unit']) : 'NOS',
+            ':workshop' => $partWorkshop
         ]);
 
         $newId = $conn->lastInsertId();

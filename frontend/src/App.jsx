@@ -157,11 +157,11 @@ export default function App() {
         )}
 
         {activeTab === 'parties' && (
-          <Parties onActionComplete={handleActionComplete} />
+          <Parties currentWorkshop={currentWorkshop} onActionComplete={handleActionComplete} />
         )}
 
         {activeTab === 'parts' && (
-          <Parts onActionComplete={handleActionComplete} />
+          <Parts currentWorkshop={currentWorkshop} onActionComplete={handleActionComplete} />
         )}
       </main>
 
