@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 const WORKSHOPS = [
-  { id: 'siddhivinayak', label: '1. Siddhivinayak Industries', name: 'Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
+  { id: 'siddhivinayak', label: '1. Siddhivinayak Industries', name: 'Shree Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
   { id: 'gayatri', label: '2. Gayatri Industries', name: 'Gayatri Auto Industries', shortName: 'Gayatri', code: 'GI' }
 ];
 

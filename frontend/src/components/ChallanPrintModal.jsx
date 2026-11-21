@@ -9,14 +9,14 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', workshop =
 
   const ws = challan.workshop || workshop || 'siddhivinayak';
   const isGayatri = ws === 'gayatri';
-  const workshopSupplierName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SIDDHIVINAYAK CNC JOBWORK";
-  const workshopReceiverName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SIDDHIVINAYAK CNC WORKSHOP";
-  const signatoryLabel = isGayatri ? "(Gayatri Auto Industries)" : "(Siddhivinayak CNC Workshop)";
+  const workshopSupplierName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SHREE SIDDHIVINAYAK INDUSTRIES";
+  const workshopReceiverName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SHREE SIDDHIVINAYAK INDUSTRIES";
+  const signatoryLabel = isGayatri ? "(Gayatri Auto Industries)" : "(Shree Siddhivinayak Industries)";
 
   const workshopAddress = isGayatri
     ? "PLOT NO. 8, R.S. NO. 721/2, NEAR CAPTION TRACTOR, PADAVALA ROAD, CAPTAIN AGRI MACHINERY EXIM LLP, TA- KOTDA SANGANI, VERAVAL, RAJKOT"
-    : "PLOT NO. 10, MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, AT-PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024";
-  const workshopGSTIN = isGayatri ? "24EIQPA0935J1Z9" : "24AATFN2990F1ZX";
+    : "0, R.S. NO. 721/2, PLOT NO. 8, TA - KOTDASANGANI, PADAVALA ROAD, NEAR CAPTION TRACTOR, VERAVAL (SHAPAR), RAJKOT - 360026";
+  const workshopGSTIN = isGayatri ? "24EIQPA0935J1Z9" : "24BQCPA3833J1Z7";
   const workshopContact = isGayatri ? "9825000000 / 9979000000" : "9825000000 / 9979000000";
 
   const isOutward = type === 'OUTWARD';

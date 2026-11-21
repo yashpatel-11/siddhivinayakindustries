@@ -80,12 +80,12 @@ const INITIAL_OUTWARDS = [];
 export const WORKSHOPS = [
   { 
     id: 'siddhivinayak', 
-    name: 'Siddhivinayak Industries', 
-    tradeName: 'SIDDHIVINAYAK CNC JOBWORK',
+    name: 'Shree Siddhivinayak Industries', 
+    tradeName: 'SHREE SIDDHIVINAYAK INDUSTRIES',
     shortName: 'Siddhivinayak', 
     code: 'SV',
-    gstin: '24AATFN2990F1ZX',
-    address: 'PLOT NO. 10, MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, AT-PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024'
+    gstin: '24BQCPA3833J1Z7',
+    address: '0, R.S. No. 721/2, Plot No. 8, Ta - Kotdasangani, Padavala Road, Near Caption Tractor, Veraval (Shapar) Rajkot - 360026'
   },
   { 
     id: 'gayatri', 

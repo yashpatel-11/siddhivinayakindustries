@@ -170,7 +170,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
             <span className="font-bold text-slate-700">
-              {currentWorkshop === 'gayatri' ? 'Gayatri Industries' : 'Siddhivinayak CNC Workshop'}
+              {currentWorkshop === 'gayatri' ? 'Gayatri Auto Industries' : 'Shree Siddhivinayak Industries'}
             </span> • Delivery Challan & Inventory System
           </div>
           <div className="flex items-center space-x-4 text-[11px]">
