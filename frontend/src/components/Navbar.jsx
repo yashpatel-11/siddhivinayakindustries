@@ -17,7 +17,7 @@ import {
 
 const WORKSHOPS = [
   { id: 'siddhivinayak', label: '1. Siddhivinayak Industries', name: 'Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
-  { id: 'gayatri', label: '2. Gayatri Industries', name: 'Gayatri Industries', shortName: 'Gayatri', code: 'GI' }
+  { id: 'gayatri', label: '2. Gayatri Industries', name: 'Gayatri Auto Industries', shortName: 'Gayatri', code: 'GI' }
 ];
 
 export default function Navbar({ 

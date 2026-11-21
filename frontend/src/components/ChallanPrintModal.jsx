@@ -9,24 +9,32 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', workshop =
 
   const ws = challan.workshop || workshop || 'siddhivinayak';
   const isGayatri = ws === 'gayatri';
-  const workshopSupplierName = isGayatri ? "GAYATRI INDUSTRIES" : "SIDDHIVINAYAK CNC JOBWORK";
-  const workshopReceiverName = isGayatri ? "GAYATRI INDUSTRIES" : "SIDDHIVINAYAK CNC WORKSHOP";
-  const signatoryLabel = isGayatri ? "(Gayatri Industries)" : "(Siddhivinayak CNC Workshop)";
+  const workshopSupplierName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SIDDHIVINAYAK CNC JOBWORK";
+  const workshopReceiverName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SIDDHIVINAYAK CNC WORKSHOP";
+  const signatoryLabel = isGayatri ? "(Gayatri Auto Industries)" : "(Siddhivinayak CNC Workshop)";
+
+  const workshopAddress = isGayatri
+    ? "PLOT NO. 8, R.S. NO. 721/2, NEAR CAPTION TRACTOR, PADAVALA ROAD, CAPTAIN AGRI MACHINERY EXIM LLP, TA- KOTDA SANGANI, VERAVAL, RAJKOT"
+    : "PLOT NO. 10, MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, AT-PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024";
+  const workshopGSTIN = isGayatri ? "24EIQPA0935J1Z9" : "24AATFN2990F1ZX";
+  const workshopContact = isGayatri ? "9825000000 / 9979000000" : "9825000000 / 9979000000";
 
   const isOutward = type === 'OUTWARD';
   const supplierName = isOutward ? workshopSupplierName : (challan.party_name || "AJK FORGE PRIVATE LIMITED");
   const supplierAddress = isOutward 
-    ? "PLOT NO. 10, MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, AT-PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024"
+    ? workshopAddress
     : (challan.party_address || "VERAVAL (SHAPAR), RAJKOT");
-  const supplierGSTIN = isOutward ? "24AATFN2990F1ZX" : (challan.party_gstin || "24AAGCA0436P1ZN");
-  const supplierContact = isOutward ? "9825000000 / 9979000000" : (challan.party_phone || "9427867368 / 9313546921");
+  const supplierGSTIN = isOutward ? workshopGSTIN : (challan.party_gstin || "24AAGCA0436P1ZN");
+  const supplierContact = isOutward ? workshopContact : (challan.party_phone || "9427867368 / 9313546921");
 
   const receiverName = isOutward ? (challan.party_name || "CUSTOMER") : workshopReceiverName;
   const receiverAddress = isOutward 
     ? (challan.party_address || "GIDC AREA, RAJKOT")
-    : "MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, PLOT NO. 10, AT - PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024";
-  const receiverGSTIN = isOutward ? (challan.party_gstin || "24AAGCA0436P1ZN") : "24AATFN2990F1ZX";
-  const stateCode = challan.party_state_code || "24-Gujarat";
+    : workshopAddress;
+  const receiverGSTIN = isOutward ? (challan.party_gstin || "24AAGCA0436P1ZN") : workshopGSTIN;
+  const stateCode = isOutward 
+    ? (challan.party_state_code || "24-Gujarat")
+    : "24-Gujarat";
 
   const items = challan.items || [];
   const totalQty = items.reduce((sum, it) => sum + Number(it.quantity || 0), 0);

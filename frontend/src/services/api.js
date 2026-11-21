@@ -78,8 +78,24 @@ const INITIAL_INWARDS = [];
 const INITIAL_OUTWARDS = [];
 
 export const WORKSHOPS = [
-  { id: 'siddhivinayak', name: 'Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
-  { id: 'gayatri', name: 'Gayatri Industries', shortName: 'Gayatri', code: 'GI' }
+  { 
+    id: 'siddhivinayak', 
+    name: 'Siddhivinayak Industries', 
+    tradeName: 'SIDDHIVINAYAK CNC JOBWORK',
+    shortName: 'Siddhivinayak', 
+    code: 'SV',
+    gstin: '24AATFN2990F1ZX',
+    address: 'PLOT NO. 10, MAHADEV INDUSTRIES-1, SURVEY NO. 335, 336, AT-PADAVLA, VERAVAL (SHAPAR), RAJKOT - 360024'
+  },
+  { 
+    id: 'gayatri', 
+    name: 'Gayatri Auto Industries', 
+    tradeName: 'GAYATRI AUTO INDUSTRIES',
+    shortName: 'Gayatri', 
+    code: 'GI',
+    gstin: '24EIQPA0935J1Z9',
+    address: 'Plot No. 8, R.S. No. 721/2, Near Caption Tractor, Padavala Road, Captain Agri Machinery EXIM LLP, Ta- Kotda Sangani, Veraval Rajkot'
+  }
 ];
 
 let currentWorkshop = localStorage.getItem('sv_current_workshop') || 'siddhivinayak';
