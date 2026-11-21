@@ -14,6 +14,7 @@ import {
   Lock,
   Building2
 } from 'lucide-react';
+import { matchWorkshop } from '../services/api';
 
 const WORKSHOPS = [
   { id: 'siddhivinayak', label: '1. Siddhivinayak Industries', name: 'Shree Siddhivinayak Industries', shortName: 'Siddhivinayak', code: 'SV' },
@@ -33,7 +34,8 @@ export default function Navbar({
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupMessage, setSetupMessage] = useState(null);
 
-  const activeWorkshopObj = WORKSHOPS.find(w => w.id === currentWorkshop) || WORKSHOPS[0];
+  const selectedWorkshopValue = matchWorkshop(currentWorkshop, 'gayatri') ? 'gayatri' : 'siddhivinayak';
+  const activeWorkshopObj = WORKSHOPS.find(w => w.id === selectedWorkshopValue) || WORKSHOPS[0];
 
   const handleSetup = async () => {
     setSetupLoading(true);
@@ -118,7 +120,7 @@ export default function Navbar({
             <div className="flex items-center space-x-1.5 bg-slate-800/95 hover:bg-slate-800 border border-sky-500/50 rounded-lg px-2.5 py-1.5 shadow-sm transition">
               <Building2 className="w-4 h-4 text-sky-400 shrink-0" />
               <select
-                value={currentWorkshop}
+                value={selectedWorkshopValue}
                 onChange={(e) => onWorkshopChange && onWorkshopChange(e.target.value)}
                 className="bg-transparent text-xs sm:text-sm font-semibold text-white focus:outline-none cursor-pointer pr-1"
                 title="Switch Active Workshop"

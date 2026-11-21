@@ -1,6 +1,7 @@
 // frontend/src/components/ChallanPrintModal.jsx
 import React, { useState } from 'react';
 import { Printer, X, Download, Copy, Layers } from 'lucide-react';
+import { matchWorkshop } from '../services/api';
 
 export default function ChallanPrintModal({ challan, type = 'INWARD', workshop = 'siddhivinayak', onClose }) {
   if (!challan) return null;
@@ -8,7 +9,7 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', workshop =
   const [selectedCopy, setSelectedCopy] = useState('Original For Consignee'); // or 'Duplicate for Transporter' or 'Triplicate for Consignor' or 'All'
 
   const ws = challan.workshop || workshop || 'siddhivinayak';
-  const isGayatri = ws === 'gayatri';
+  const isGayatri = matchWorkshop(ws, 'gayatri');
   const workshopSupplierName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SHREE SIDDHIVINAYAK INDUSTRIES";
   const workshopReceiverName = isGayatri ? "GAYATRI AUTO INDUSTRIES" : "SHREE SIDDHIVINAYAK INDUSTRIES";
   const signatoryLabel = isGayatri ? "(Gayatri Auto Industries)" : "(Shree Siddhivinayak Industries)";

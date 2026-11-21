@@ -31,6 +31,15 @@ const INITIAL_PARTIES = [
     phone: "9724156789",
     state_code: "24-Gujarat",
     created_at: "2026-11-07 14:15:00"
+  },
+  {
+    id: 4,
+    name: "METALIC TECHNOFORGE LIMITED",
+    gstin: "24AAKCM6128N1Z2",
+    address: "PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024",
+    phone: "9825000000 / 9979000000",
+    state_code: "24-Gujarat",
+    created_at: "2026-11-20 09:00:00"
   }
 ];
 
@@ -70,6 +79,106 @@ const INITIAL_PARTS = [
     hsn_code: "73269099",
     default_rate: 65.50,
     unit: "NOS"
+  },
+  {
+    id: 5,
+    part_no: "MF4138",
+    description: "GEAR",
+    grade: "20MOCR4",
+    hsn_code: "B1581",
+    default_rate: 0.00,
+    unit: "NOS"
+  }
+];
+
+export const matchWorkshop = (itemWs, targetWs) => {
+  const normItem = String(itemWs || 'siddhivinayak').trim().toLowerCase();
+  const normTarget = String(targetWs || 'siddhivinayak').trim().toLowerCase();
+  if (normTarget === 'gayatri' || normTarget.includes('gayatri') || normTarget === 'gi') {
+    return normItem.includes('gayatri') || normItem === 'gi';
+  }
+  return !normItem.includes('gayatri') && normItem !== 'gi';
+};
+
+const GAYATRI_INITIAL_INWARDS = [
+  {
+    id: 101,
+    workshop: 'gayatri',
+    challan_no: 'MTF-3588/26-27',
+    challan_date: '2026-11-20',
+    party_id: 4,
+    party_name: 'METALIC TECHNOFORGE LIMITED',
+    party_gstin: '24AAKCM6128N1Z2',
+    party_address: 'PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024',
+    party_phone: '9825000000 / 9979000000',
+    party_state_code: '24-Gujarat',
+    vehicle_no: '00',
+    eway_bill_no: '00',
+    process_required: 'CNC TURNING',
+    remarks: 'Received against customer jobwork order',
+    total_quantity: 15,
+    total_amount: 0,
+    items: [
+      {
+        id: 201,
+        inward_id: 101,
+        part_id: 5,
+        part_no: 'MF4138',
+        part_description: 'GEAR',
+        grade: '20MOCR4',
+        heat_no: '81581',
+        quantity: 15,
+        rate: 0,
+        amount: 0,
+        unit: 'NOS',
+        default_hsn: 'B1581'
+      }
+    ]
+  }
+];
+
+const GAYATRI_INITIAL_OUTWARDS = [
+  {
+    id: 101,
+    workshop: 'gayatri',
+    challan_no: 'J-1',
+    challan_date: '2026-11-20',
+    party_id: 4,
+    party_name: 'METALIC TECHNOFORGE LIMITED',
+    party_gstin: '24AAKCM6128N1Z2',
+    party_address: 'PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024',
+    party_phone: '9825000000 / 9979000000',
+    party_state_code: '24-Gujarat',
+    vehicle_no: '00',
+    eway_bill_no: '00',
+    process_carried_out: 'CNC TURNING',
+    remarks: 'Jobwork Dispatch Issue',
+    total_quantity: 15,
+    total_waste: 0,
+    total_machine_rejection: 0,
+    total_forging_rejection: 0,
+    total_amount: 0,
+    items: [
+      {
+        id: 1,
+        outward_id: 101,
+        part_id: 5,
+        inward_item_id: 201,
+        inward_challan_no: 'MTF-3588/26-27',
+        part_no: 'MF4138',
+        part_description: 'GEAR',
+        default_grade: '20MOCR4',
+        hsn_code: 'B1581',
+        heat_no: '81581',
+        quantity: 15,
+        machine_rejection: 0,
+        forging_rejection: 0,
+        waste_quantity: 0,
+        rate: 0,
+        amount: 0,
+        unit: 'NOS'
+      }
+    ]
   }
 ];
 
@@ -106,7 +215,7 @@ export const getNextOutwardChallanNo = (existingChallans = [], workshop = null) 
   if (Array.isArray(existingChallans)) {
     for (const ch of existingChallans) {
       if (!ch || !ch.challan_no) continue;
-      if ((ch.workshop || 'siddhivinayak') !== ws) continue;
+      if (!matchWorkshop(ch.workshop, ws)) continue;
       const match = String(ch.challan_no).trim().match(/^J[-]?\s*(\d+)$/i);
       if (match) {
         const num = parseInt(match[1], 10);
@@ -122,49 +231,92 @@ export const getNextOutwardChallanNo = (existingChallans = [], workshop = null) 
 class LocalDataStore {
   constructor() {
     this.currentWorkshop = currentWorkshop;
-    if (!localStorage.getItem('sv_cleared_entries_v1')) {
-      localStorage.removeItem('sv_inwards');
-      localStorage.removeItem('sv_outwards');
-      localStorage.setItem('sv_cleared_entries_v1', 'true');
+    this.load();
+  }
+
+  load() {
+    try {
+      if (!localStorage.getItem('sv_cleared_entries_v1')) {
+        localStorage.removeItem('sv_inwards');
+        localStorage.removeItem('sv_outwards');
+        localStorage.setItem('sv_cleared_entries_v1', 'true');
+      }
+      this.parties = JSON.parse(localStorage.getItem('sv_parties')) || INITIAL_PARTIES;
+      if (!this.parties.some(p => String(p.name).toUpperCase().includes('METALIC'))) {
+        const mtf = INITIAL_PARTIES.find(p => p.id === 4);
+        if (mtf) this.parties.push(mtf);
+      }
+
+      this.parts = JSON.parse(localStorage.getItem('sv_parts')) || INITIAL_PARTS;
+      if (!this.parts.some(p => String(p.part_no).toUpperCase() === 'MF4138')) {
+        const mf = INITIAL_PARTS.find(p => p.part_no === 'MF4138');
+        if (mf) this.parts.push(mf);
+      }
+
+      this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || [];
+      this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || [];
+
+      // Auto-heal workshops: If party_name is METALIC TECHNOFORGE or challan has MTF-, it belongs to Gayatri!
+      this.inwards.forEach(inv => {
+        const pName = String(inv.party_name || '').toUpperCase();
+        const chNo = String(inv.challan_no || '').toUpperCase();
+        const ws = String(inv.workshop || '').toLowerCase();
+        if (ws.includes('gayatri') || ws === 'gi' || pName.includes('METALIC') || chNo.includes('MTF')) {
+          inv.workshop = 'gayatri';
+        } else if (!inv.workshop) {
+          inv.workshop = 'siddhivinayak';
+        }
+        if (inv.process_required === 'BROACHING / CNC TURNING') {
+          inv.process_required = 'CNC TURNING';
+        }
+      });
+
+      this.outwards.forEach(out => {
+        const pName = String(out.party_name || '').toUpperCase();
+        const chNo = String(out.challan_no || '').toUpperCase();
+        const ws = String(out.workshop || '').toLowerCase();
+        if (ws.includes('gayatri') || ws === 'gi' || pName.includes('METALIC') || chNo.includes('MTF')) {
+          out.workshop = 'gayatri';
+        } else if (!out.workshop) {
+          out.workshop = 'siddhivinayak';
+        }
+        if (out.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || out.process_carried_out === 'BROACHING / CNC TURNING') {
+          out.process_carried_out = 'CNC TURNING';
+        }
+      });
+
+      // Auto-repair: Ensure all inward items have unique IDs across all inwards
+      let maxItemId = 0;
+      const seenItemIds = new Set();
+      this.inwards.forEach(inv => {
+        if (Array.isArray(inv.items)) {
+          inv.items.forEach(it => {
+            if (!it.id || seenItemIds.has(it.id)) {
+              maxItemId++;
+              it.id = maxItemId;
+            } else {
+              seenItemIds.add(it.id);
+              if (Number(it.id) > maxItemId) maxItemId = Number(it.id);
+            }
+          });
+        }
+      });
+
+      // If Gayatri has no records yet, seed the initial Gayatri records
+      const hasGayatriInward = this.inwards.some(i => matchWorkshop(i.workshop, 'gayatri'));
+      if (!hasGayatriInward) {
+        this.inwards.push(...GAYATRI_INITIAL_INWARDS);
+      }
+
+      const hasGayatriOutward = this.outwards.some(o => matchWorkshop(o.workshop, 'gayatri'));
+      if (!hasGayatriOutward) {
+        this.outwards.push(...GAYATRI_INITIAL_OUTWARDS);
+      }
+
+      this.save();
+    } catch (e) {
+      console.error("LocalDataStore load error:", e);
     }
-    this.parties = JSON.parse(localStorage.getItem('sv_parties')) || INITIAL_PARTIES;
-    this.parts = JSON.parse(localStorage.getItem('sv_parts')) || INITIAL_PARTS;
-    this.inwards = JSON.parse(localStorage.getItem('sv_inwards')) || [];
-    this.outwards = JSON.parse(localStorage.getItem('sv_outwards')) || [];
-
-    // Ensure all inwards and outwards have workshop property
-    this.inwards.forEach(inv => {
-      if (!inv.workshop) inv.workshop = 'siddhivinayak';
-      if (inv.process_required === 'BROACHING / CNC TURNING') {
-        inv.process_required = 'CNC TURNING';
-      }
-    });
-    this.outwards.forEach(out => {
-      if (!out.workshop) out.workshop = 'siddhivinayak';
-      if (out.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || out.process_carried_out === 'BROACHING / CNC TURNING') {
-        out.process_carried_out = 'CNC TURNING';
-      }
-    });
-
-    // Auto-repair: Ensure all inward items have unique IDs across all inwards
-    let maxItemId = 0;
-    const seenItemIds = new Set();
-    let reindexed = false;
-    this.inwards.forEach(inv => {
-      if (Array.isArray(inv.items)) {
-        inv.items.forEach(it => {
-          if (!it.id || seenItemIds.has(it.id)) {
-            maxItemId++;
-            it.id = maxItemId;
-            reindexed = true;
-          } else {
-            seenItemIds.add(it.id);
-            if (Number(it.id) > maxItemId) maxItemId = Number(it.id);
-          }
-        });
-      }
-    });
-    this.save();
   }
 
   setCurrentWorkshop(ws) {
@@ -185,8 +337,9 @@ class LocalDataStore {
   }
 
   getDashboard(workshop = this.currentWorkshop) {
-    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
-    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+    this.load();
+    const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
+    const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
 
     let totalInwardQty = 0;
     let totalInwardVal = 0;
@@ -231,15 +384,16 @@ class LocalDataStore {
   }
 
   getStockPartWise(workshop = this.currentWorkshop) {
-    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
-    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+    this.load();
+    const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
+    const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
 
     return this.parts.map(part => {
       let inQty = 0;
       const partySet = new Set();
       wsInwards.forEach(inv => {
         inv.items.forEach(it => {
-          if (it.part_id === part.id) {
+          if (Number(it.part_id) === Number(part.id)) {
             inQty += Number(it.quantity || 0);
             partySet.add(inv.party_id);
           }
@@ -252,7 +406,7 @@ class LocalDataStore {
       let forgingRejQty = 0;
       wsOutwards.forEach(out => {
         out.items.forEach(it => {
-          if (it.part_id === part.id) {
+          if (Number(it.part_id) === Number(part.id)) {
             outQty += Number(it.quantity || 0);
             wasteQty += Number(it.waste_quantity || 0);
             machineRejQty += Number(it.machine_rejection || 0);
@@ -283,18 +437,20 @@ class LocalDataStore {
   }
 
   getStockPartyWise(workshop = this.currentWorkshop) {
-    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
-    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+    this.load();
+    const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
+    const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
 
     return this.parties.map(party => {
       const partMap = {};
 
-      wsInwards.filter(inv => inv.party_id === party.id).forEach(inv => {
+      wsInwards.filter(inv => Number(inv.party_id) === Number(party.id)).forEach(inv => {
         inv.items.forEach(it => {
-          if (!partMap[it.part_id]) {
-            const p = this.parts.find(x => x.id === it.part_id) || {};
-            partMap[it.part_id] = {
-              part_id: it.part_id,
+          const ptId = Number(it.part_id);
+          if (!partMap[ptId]) {
+            const p = this.parts.find(x => Number(x.id) === ptId) || {};
+            partMap[ptId] = {
+              part_id: ptId,
               part_no: it.part_no || p.part_no,
               description: it.part_description || p.description,
               grade: it.grade || p.grade,
@@ -307,16 +463,17 @@ class LocalDataStore {
               current_stock: 0
             };
           }
-          partMap[it.part_id].inward_qty += Number(it.quantity || 0);
+          partMap[ptId].inward_qty += Number(it.quantity || 0);
         });
       });
 
-      wsOutwards.filter(out => out.party_id === party.id).forEach(out => {
+      wsOutwards.filter(out => Number(out.party_id) === Number(party.id)).forEach(out => {
         out.items.forEach(it => {
-          if (!partMap[it.part_id]) {
-            const p = this.parts.find(x => x.id === it.part_id) || {};
-            partMap[it.part_id] = {
-              part_id: it.part_id,
+          const ptId = Number(it.part_id);
+          if (!partMap[ptId]) {
+            const p = this.parts.find(x => Number(x.id) === ptId) || {};
+            partMap[ptId] = {
+              part_id: ptId,
               part_no: it.part_no || p.part_no,
               description: it.part_description || p.description,
               grade: it.default_grade || p.grade,
@@ -329,10 +486,10 @@ class LocalDataStore {
               current_stock: 0
             };
           }
-          partMap[it.part_id].outward_qty += Number(it.quantity || 0);
-          partMap[it.part_id].waste_qty += Number(it.waste_quantity || 0);
-          partMap[it.part_id].machine_rej_qty += Number(it.machine_rejection || 0);
-          partMap[it.part_id].forging_rej_qty += Number(it.forging_rejection || 0);
+          partMap[ptId].outward_qty += Number(it.quantity || 0);
+          partMap[ptId].waste_qty += Number(it.waste_quantity || 0);
+          partMap[ptId].machine_rej_qty += Number(it.machine_rejection || 0);
+          partMap[ptId].forging_rej_qty += Number(it.forging_rejection || 0);
         });
       });
 
@@ -353,6 +510,7 @@ class LocalDataStore {
   }
 
   getMatrix(partyId, partId, workshop = this.currentWorkshop) {
+    this.load();
     const list = [];
     const partyWise = this.getStockPartyWise(workshop);
     partyWise.forEach(party => {
@@ -380,9 +538,10 @@ class LocalDataStore {
   }
 
   getLedger(partyId, partId, workshop = this.currentWorkshop) {
+    this.load();
     const txs = [];
-    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === workshop);
-    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === workshop);
+    const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, workshop));
+    const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, workshop));
 
     wsInwards.forEach(inv => {
       if (partyId && Number(inv.party_id) !== Number(partyId)) return;
@@ -453,6 +612,7 @@ class LocalDataStore {
   }
 
   getPartyParts(partyId, workshop = this.currentWorkshop) {
+    this.load();
     if (!partyId) return [];
     const pId = Number(partyId);
     const partyWise = this.getStockPartyWise(workshop);
@@ -469,6 +629,7 @@ class LocalDataStore {
   }
 
   getInwardLots(partyId, partId, excludeOutwardId = null, workshop = this.currentWorkshop) {
+    this.load();
     if (!partyId || !partId) return [];
     const pId = Number(partyId);
     const ptId = Number(partId);
@@ -476,8 +637,8 @@ class LocalDataStore {
     const ws = workshop || this.currentWorkshop;
     const lots = [];
 
-    const wsInwards = this.inwards.filter(i => (i.workshop || 'siddhivinayak') === ws);
-    const wsOutwards = this.outwards.filter(o => (o.workshop || 'siddhivinayak') === ws);
+    const wsInwards = this.inwards.filter(i => matchWorkshop(i.workshop, ws));
+    const wsOutwards = this.outwards.filter(o => matchWorkshop(o.workshop, ws));
 
     wsInwards
       .filter(inv => Number(inv.party_id) === pId)
@@ -540,6 +701,7 @@ class LocalDataStore {
   }
 
   createInward(data) {
+    this.load();
     const ws = data.workshop || this.currentWorkshop || 'siddhivinayak';
     const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
     const newId = (this.inwards.length ? Math.max(...this.inwards.map(x => x.id)) : 0) + 1;
@@ -605,6 +767,7 @@ class LocalDataStore {
   }
 
   createOutward(data) {
+    this.load();
     const ws = data.workshop || this.currentWorkshop || 'siddhivinayak';
     const party = this.parties.find(p => Number(p.id) === Number(data.party_id)) || {};
     const newId = (this.outwards.length ? Math.max(...this.outwards.map(x => x.id)) : 0) + 1;
@@ -1021,7 +1184,8 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.inwards.filter(i => (i.workshop || 'siddhivinayak') === ws), isLive: false };
+    localStore.load();
+    return { data: localStore.inwards.filter(i => matchWorkshop(i.workshop, ws)), isLive: false };
   },
 
   async getInward(id) {
@@ -1029,6 +1193,7 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
+    localStore.load();
     const inv = localStore.inwards.find(i => Number(i.id) === Number(id));
     return { data: inv, isLive: false };
   },
@@ -1066,6 +1231,7 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return res.data;
     }
+    localStore.load();
     localStore.inwards = localStore.inwards.filter(i => i.id !== id);
     localStore.save();
     return { status: 'success', isLive: false };
@@ -1077,7 +1243,8 @@ export const api = {
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.outwards.filter(o => (o.workshop || 'siddhivinayak') === ws), isLive: false };
+    localStore.load();
+    return { data: localStore.outwards.filter(o => matchWorkshop(o.workshop, ws)), isLive: false };
   },
 
   async getOutward(id) {
