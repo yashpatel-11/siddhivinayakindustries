@@ -41,7 +41,7 @@ const INITIAL_PARTIES = [
     name: "METALIC TECHNOFORGE LIMITED",
     gstin: "24AAKCM6128N1Z2",
     address: "PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024",
-    phone: "9825000000 / 9979000000",
+    phone: "9033332255",
     state_code: "24-Gujarat",
     created_at: "2026-11-20 09:00:00"
   }
@@ -119,7 +119,7 @@ const GAYATRI_INITIAL_INWARDS = [
     party_name: 'METALIC TECHNOFORGE LIMITED',
     party_gstin: '24AAKCM6128N1Z2',
     party_address: 'PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024',
-    party_phone: '9825000000 / 9979000000',
+    party_phone: '9033332255',
     party_state_code: '24-Gujarat',
     vehicle_no: '00',
     eway_bill_no: '00',
@@ -156,7 +156,7 @@ const GAYATRI_INITIAL_OUTWARDS = [
     party_name: 'METALIC TECHNOFORGE LIMITED',
     party_gstin: '24AAKCM6128N1Z2',
     party_address: 'PLOT NO. 6, SURVEY NOS. 296, PADAVALA, TAL KOTADASANGANI - 360,024',
-    party_phone: '9825000000 / 9979000000',
+    party_phone: '9033332255',
     party_state_code: '24-Gujarat',
     vehicle_no: '00',
     eway_bill_no: '00',
@@ -273,6 +273,9 @@ class LocalDataStore {
         } else if (!p.workshop) {
           p.workshop = 'siddhivinayak';
         }
+        if (p.phone === '9825000000 / 9979000000') {
+          p.phone = '9033332255';
+        }
       });
 
       this.parts.forEach(pt => {
@@ -297,6 +300,9 @@ class LocalDataStore {
         if (inv.process_required === 'BROACHING / CNC TURNING') {
           inv.process_required = 'CNC TURNING';
         }
+        if (inv.party_phone === '9825000000 / 9979000000') {
+          inv.party_phone = '9033332255';
+        }
       });
 
       this.outwards.forEach(out => {
@@ -310,6 +316,9 @@ class LocalDataStore {
         }
         if (out.process_carried_out === 'BROACHING / CNC TURNING COMPLETED' || out.process_carried_out === 'BROACHING / CNC TURNING') {
           out.process_carried_out = 'CNC TURNING';
+        }
+        if (out.party_phone === '9825000000 / 9979000000') {
+          out.party_phone = '9033332255';
         }
       });
 

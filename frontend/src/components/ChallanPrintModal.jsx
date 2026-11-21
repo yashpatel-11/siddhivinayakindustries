@@ -18,7 +18,7 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', workshop =
     ? "PLOT NO. 8, R.S. NO. 721/2, NEAR CAPTION TRACTOR, PADAVALA ROAD, CAPTAIN AGRI MACHINERY EXIM LLP, TA- KOTDA SANGANI, VERAVAL, RAJKOT"
     : "0, R.S. NO. 721/2, PLOT NO. 8, TA - KOTDASANGANI, PADAVALA ROAD, NEAR CAPTION TRACTOR, VERAVAL (SHAPAR), RAJKOT - 360026";
   const workshopGSTIN = isGayatri ? "24EIQPA0935J1Z9" : "24BQCPA3833J1Z7";
-  const workshopContact = isGayatri ? "9825000000 / 9979000000" : "9825000000 / 9979000000";
+  const workshopContact = "9033332255";
 
   const isOutward = type === 'OUTWARD';
   const supplierName = isOutward ? workshopSupplierName : (challan.party_name || "AJK FORGE PRIVATE LIMITED");
@@ -26,7 +26,9 @@ export default function ChallanPrintModal({ challan, type = 'INWARD', workshop =
     ? workshopAddress
     : (challan.party_address || "VERAVAL (SHAPAR), RAJKOT");
   const supplierGSTIN = isOutward ? workshopGSTIN : (challan.party_gstin || "24AAGCA0436P1ZN");
-  const supplierContact = isOutward ? workshopContact : (challan.party_phone || "9427867368 / 9313546921");
+  const supplierContact = isOutward 
+    ? workshopContact 
+    : (challan.party_phone && challan.party_phone !== "9825000000 / 9979000000" ? challan.party_phone : (isGayatri ? "9033332255" : "9427867368 / 9313546921"));
 
   const receiverName = isOutward ? (challan.party_name || "CUSTOMER") : workshopReceiverName;
   const receiverAddress = isOutward 
