@@ -85,6 +85,7 @@ switch ($method) {
                     GROUP BY oi.inward_item_id
                 ) out_sub ON ii.id = out_sub.inward_item_id
                 WHERE ic.party_id = :party_id AND ii.part_id = :part_id AND ic.workshop = :ws
+                " . (!empty($_GET['only_available']) ? "HAVING available_stock > 0" : "") . "
                 ORDER BY ic.challan_date ASC, ic.id ASC
             ");
             $stmt->execute([

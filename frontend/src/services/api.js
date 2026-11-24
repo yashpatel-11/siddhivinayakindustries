@@ -679,7 +679,7 @@ class LocalDataStore {
     }));
   }
 
-  getInwardLots(partyId, partId, excludeOutwardId = null, workshop = this.currentWorkshop) {
+  getInwardLots(partyId, partId, excludeOutwardId = null, workshop = this.currentWorkshop, onlyAvailable = false) {
     this.load();
     if (!partyId || !partId) return [];
     const pId = Number(partyId);
@@ -748,6 +748,9 @@ class LocalDataStore {
           });
       });
 
+    if (onlyAvailable) {
+      return lots.filter(l => Number(l.available_stock) > 0);
+    }
     return lots;
   }
 
@@ -1367,14 +1370,14 @@ export const api = {
     return { data: localStore.getPartyParts(partyId, ws), isLive: false };
   },
 
-  async getInwardLots(partyId, partId, excludeOutwardId = null, workshop = null) {
+  async getInwardLots(partyId, partId, excludeOutwardId = null, workshop = null, onlyAvailable = false) {
     const ws = workshop || currentWorkshop;
-    const query = `inward.php?action=part_lots&party_id=${partyId}&part_id=${partId}&workshop=${ws}${excludeOutwardId ? '&exclude_outward_id=' + excludeOutwardId : ''}`;
+    const query = `inward.php?action=part_lots&party_id=${partyId}&part_id=${partId}&workshop=${ws}${excludeOutwardId ? '&exclude_outward_id=' + excludeOutwardId : ''}${onlyAvailable ? '&only_available=1' : ''}`;
     const res = await fetchFromBackend(query);
     if (res.data && res.data.status === 'success') {
       return { data: res.data.data, isLive: true };
     }
-    return { data: localStore.getInwardLots(partyId, partId, excludeOutwardId, ws), isLive: false };
+    return { data: localStore.getInwardLots(partyId, partId, excludeOutwardId, ws, onlyAvailable), isLive: false };
   },
 
   async getStock(type = 'part_wise', params = {}) {

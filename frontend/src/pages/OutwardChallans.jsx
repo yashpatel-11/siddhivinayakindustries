@@ -166,7 +166,12 @@ export default function OutwardChallans({
     try {
       const exclId = customExcludeOutwardId !== null ? customExcludeOutwardId : editingChallanId;
       const res = await api.getInwardLots(partyId, partId, exclId, currentWorkshop);
-      const lots = res.data || [];
+      const allLots = res.data || [];
+      // Filter out lots where available stock is 0 so 0-stock lots never appear when dispatching
+      const lots = allLots.filter(l => 
+        Number(l.available_stock) > 0 || 
+        (exclId && targetInwardItemId && (String(l.inward_item_id) === String(targetInwardItemId) || String(l.lot_key) === String(targetInwardItemId)))
+      );
       setInwardLotsByRow(prev => ({
         ...prev,
         [rowIndex]: lots
@@ -183,11 +188,22 @@ export default function OutwardChallans({
           );
         }
         if (!lotToSelect) {
-          // Default to the first lot that has available stock, or the first lot
-          lotToSelect = lots.length === 1 ? lots[0] : (lots.find(l => Number(l.available_stock) > 0) || lots[0]);
+          // Default to the first lot that has available stock
+          lotToSelect = lots.find(l => Number(l.available_stock) > 0);
         }
         if (lotToSelect) {
           selectLotForItem(rowIndex, lotToSelect, !!editingChallanId);
+        }
+      } else {
+        const updated = [...formData.items];
+        if (updated[rowIndex]) {
+          updated[rowIndex].lot_key = '';
+          updated[rowIndex].inward_item_id = '';
+          updated[rowIndex].inward_challan_id = '';
+          updated[rowIndex].inward_challan_no = '';
+          updated[rowIndex].heat_no = '';
+          updated[rowIndex].available_challan_stock = 0;
+          setFormData(prev => ({ ...prev, items: updated }));
         }
       }
     } catch (e) {
@@ -464,7 +480,12 @@ export default function OutwardChallans({
         const it = items[idx];
         if (it.part_id) {
           const lotsRes = await api.getInwardLots(partyIdStr, it.part_id, ch.id, currentWorkshop);
-          const lots = lotsRes.data || [];
+          const allLots = lotsRes.data || [];
+          const lots = allLots.filter(l => 
+            Number(l.available_stock) > 0 || 
+            (it.inward_item_id && String(l.inward_item_id) === String(it.inward_item_id)) ||
+            (it.inward_challan_no && l.inward_challan_no === it.inward_challan_no)
+          );
           lotsMap[idx] = lots;
           const matchingLot = lots.find(l => 
             (it.inward_item_id && String(l.inward_item_id) === String(it.inward_item_id)) ||
@@ -999,8 +1020,12 @@ export default function OutwardChallans({
                               >
                                 <option value="">-- Select Component --</option>
                                 {partyParts.map(p => (
-                                  <option key={p.part_id} value={p.part_id}>
-                                    {p.part_no} - {p.description} (Floor Stock: {p.available_stock} {p.unit || 'NOS'})
+                                  <option 
+                                    key={p.part_id} 
+                                    value={p.part_id}
+                                    disabled={!editingChallanId && Number(p.available_stock || 0) <= 0}
+                                  >
+                                    {p.part_no} - {p.description} (Floor Stock: {p.available_stock} {p.unit || 'NOS'}{!editingChallanId && Number(p.available_stock || 0) <= 0 ? ' - Out of Stock' : ''})
                                   </option>
                                 ))}
                               </select>
@@ -1019,7 +1044,11 @@ export default function OutwardChallans({
                                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 <option value="">
-                                  {item.part_id ? "-- Choose Inward Challan --" : "Select part first"}
+                                  {!item.part_id 
+                                    ? "Select part first" 
+                                    : (lots.length > 0 
+                                        ? "-- Choose Inward Challan --" 
+                                        : "-- No Inward Lots with Available Stock --")}
                                 </option>
                                 {lots.map((lot, lIdx) => {
                                   const keyVal = lot.lot_key || `${lot.inward_challan_id}_${lot.inward_item_id || lIdx}`;
