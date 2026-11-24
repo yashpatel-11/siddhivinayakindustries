@@ -1,13 +1,13 @@
 // frontend/src/pages/OutwardChallans.jsx
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Eye, 
-  Trash2, 
+import {
+  Plus,
+  Search,
+  Eye,
+  Trash2,
   Pencil,
-  Calendar, 
-  Truck, 
+  Calendar,
+  Truck,
   AlertCircle,
   X,
   Info,
@@ -17,9 +17,9 @@ import {
 } from 'lucide-react';
 import { api, getNextOutwardChallanNo } from '../services/api';
 
-export default function OutwardChallans({ 
-  onViewChallan, 
-  initialOpenCreate = false, 
+export default function OutwardChallans({
+  onViewChallan,
+  initialOpenCreate = false,
   prefillData = null,
   onActionComplete,
   currentWorkshop = 'siddhivinayak'
@@ -43,18 +43,18 @@ export default function OutwardChallans({
     process_carried_out: 'CNC TURNING',
     remarks: '',
     items: [
-      { 
-        part_id: prefillData?.part_id ? String(prefillData.part_id) : '', 
+      {
+        part_id: prefillData?.part_id ? String(prefillData.part_id) : '',
         inward_item_id: prefillData?.inward_item_id ? String(prefillData.inward_item_id) : '',
         inward_challan_no: prefillData?.inward_challan_no || '',
         challan_date: '',
-        heat_no: '', 
+        heat_no: '',
         available_challan_stock: null,
-        quantity: prefillData?.quantity || '', 
+        quantity: prefillData?.quantity || '',
         machine_rejection: '0',
         forging_rejection: '0',
-        waste_quantity: '0', 
-        rate: '', 
+        waste_quantity: '0',
+        rate: '',
         amount: 0,
         unit: 'NOS'
       }
@@ -89,18 +89,18 @@ export default function OutwardChallans({
           ...prev,
           party_id: partyIdStr,
           items: [
-            { 
-              part_id: partIdStr, 
+            {
+              part_id: partIdStr,
               inward_item_id: targetInwardItemId,
               inward_challan_no: prefillData.inward_challan_no || '',
               challan_date: '',
-              heat_no: '', 
+              heat_no: '',
               available_challan_stock: null,
-              quantity: prefillData?.quantity ? String(prefillData.quantity) : '', 
+              quantity: prefillData?.quantity ? String(prefillData.quantity) : '',
               machine_rejection: '0',
               forging_rejection: '0',
-              waste_quantity: '0', 
-              rate: '', 
+              waste_quantity: '0',
+              rate: '',
               amount: 0,
               unit: 'NOS'
             }
@@ -168,8 +168,8 @@ export default function OutwardChallans({
       const res = await api.getInwardLots(partyId, partId, exclId, currentWorkshop);
       const allLots = res.data || [];
       // Filter out lots where available stock is 0 so 0-stock lots never appear when dispatching
-      const lots = allLots.filter(l => 
-        Number(l.available_stock) > 0 || 
+      const lots = allLots.filter(l =>
+        Number(l.available_stock) > 0 ||
         (exclId && targetInwardItemId && (String(l.inward_item_id) === String(targetInwardItemId) || String(l.lot_key) === String(targetInwardItemId)))
       );
       setInwardLotsByRow(prev => ({
@@ -181,8 +181,8 @@ export default function OutwardChallans({
       if (lots.length > 0) {
         let lotToSelect = null;
         if (targetInwardItemId) {
-          lotToSelect = lots.find(l => 
-            String(l.inward_item_id) === String(targetInwardItemId) || 
+          lotToSelect = lots.find(l =>
+            String(l.inward_item_id) === String(targetInwardItemId) ||
             String(l.lot_key) === String(targetInwardItemId) ||
             (prefillData?.inward_challan_no && l.inward_challan_no === prefillData.inward_challan_no)
           );
@@ -216,18 +216,18 @@ export default function OutwardChallans({
       ...prev,
       party_id: partyId,
       items: [
-        { 
-          part_id: '', 
+        {
+          part_id: '',
           inward_item_id: '',
           inward_challan_no: '',
           challan_date: '',
-          heat_no: '', 
+          heat_no: '',
           available_challan_stock: null,
-          quantity: '', 
+          quantity: '',
           machine_rejection: '0',
           forging_rejection: '0',
-          waste_quantity: '0', 
-          rate: '', 
+          waste_quantity: '0',
+          rate: '',
           amount: 0,
           unit: 'NOS'
         }
@@ -242,18 +242,18 @@ export default function OutwardChallans({
       ...prev,
       items: [
         ...prev.items,
-        { 
-          part_id: '', 
+        {
+          part_id: '',
           inward_item_id: '',
           inward_challan_no: '',
           challan_date: '',
-          heat_no: '', 
+          heat_no: '',
           available_challan_stock: null,
-          quantity: '', 
+          quantity: '',
           machine_rejection: '0',
           forging_rejection: '0',
-          waste_quantity: '0', 
-          rate: '', 
+          waste_quantity: '0',
+          rate: '',
           amount: 0,
           unit: 'NOS'
         }
@@ -335,7 +335,7 @@ export default function OutwardChallans({
     updated[index].rate = lot.rate || 0;
     updated[index].available_challan_stock = availStock;
     updated[index].unit = lot.unit || 'NOS';
-    
+
     if (!preserveQty) {
       // Automatically show the available quantity from the selected challan
       updated[index].quantity = availStock > 0 ? String(availStock) : '0';
@@ -414,55 +414,55 @@ export default function OutwardChallans({
       setEditingChallanId(ch.id);
 
       const partyIdStr = String(data.party_id || '');
-      
+
       const pPartsRes = await api.getPartyParts(partyIdStr, currentWorkshop);
       const pParts = pPartsRes.data || [];
       setPartyParts(pParts);
 
       const items = (data.items && data.items.length > 0)
         ? data.items.map(it => {
-            const m = parseFloat(it.machine_rejection) || 0;
-            const f = parseFloat(it.forging_rejection) || 0;
-            const w = parseFloat(it.waste_quantity !== undefined && it.waste_quantity !== '' ? it.waste_quantity : (m + f)) || 0;
-            const q = parseFloat(it.quantity) || 0;
-            const r = parseFloat(it.rate) || 0;
-            const a = parseFloat(it.amount || (q * r)).toFixed(2);
-            return {
-              id: it.id,
-              part_id: String(it.part_id),
-              inward_item_id: it.inward_item_id ? String(it.inward_item_id) : '',
-              inward_challan_id: it.inward_challan_id ? String(it.inward_challan_id) : '',
-              inward_challan_no: it.inward_challan_no || '',
-              lot_key: (it.inward_challan_id && it.inward_item_id) ? `${it.inward_challan_id}_${it.inward_item_id}` : (it.inward_item_id ? String(it.inward_item_id) : ''),
-              challan_date: '',
-              heat_no: it.heat_no || '',
-              available_challan_stock: null,
-              quantity: String(q),
-              machine_rejection: String(m),
-              forging_rejection: String(f),
-              waste_quantity: String(w),
-              rate: String(r),
-              amount: a,
-              unit: it.unit || 'NOS'
-            };
-          })
+          const m = parseFloat(it.machine_rejection) || 0;
+          const f = parseFloat(it.forging_rejection) || 0;
+          const w = parseFloat(it.waste_quantity !== undefined && it.waste_quantity !== '' ? it.waste_quantity : (m + f)) || 0;
+          const q = parseFloat(it.quantity) || 0;
+          const r = parseFloat(it.rate) || 0;
+          const a = parseFloat(it.amount || (q * r)).toFixed(2);
+          return {
+            id: it.id,
+            part_id: String(it.part_id),
+            inward_item_id: it.inward_item_id ? String(it.inward_item_id) : '',
+            inward_challan_id: it.inward_challan_id ? String(it.inward_challan_id) : '',
+            inward_challan_no: it.inward_challan_no || '',
+            lot_key: (it.inward_challan_id && it.inward_item_id) ? `${it.inward_challan_id}_${it.inward_item_id}` : (it.inward_item_id ? String(it.inward_item_id) : ''),
+            challan_date: '',
+            heat_no: it.heat_no || '',
+            available_challan_stock: null,
+            quantity: String(q),
+            machine_rejection: String(m),
+            forging_rejection: String(f),
+            waste_quantity: String(w),
+            rate: String(r),
+            amount: a,
+            unit: it.unit || 'NOS'
+          };
+        })
         : [
-            { 
-              part_id: '', 
-              inward_item_id: '',
-              inward_challan_no: '',
-              challan_date: '',
-              heat_no: '', 
-              available_challan_stock: null,
-              quantity: '', 
-              machine_rejection: '0',
-              forging_rejection: '0',
-              waste_quantity: '0', 
-              rate: '', 
-              amount: 0,
-              unit: 'NOS'
-            }
-          ];
+          {
+            part_id: '',
+            inward_item_id: '',
+            inward_challan_no: '',
+            challan_date: '',
+            heat_no: '',
+            available_challan_stock: null,
+            quantity: '',
+            machine_rejection: '0',
+            forging_rejection: '0',
+            waste_quantity: '0',
+            rate: '',
+            amount: 0,
+            unit: 'NOS'
+          }
+        ];
 
       setFormData({
         challan_no: data.challan_no || '',
@@ -481,13 +481,13 @@ export default function OutwardChallans({
         if (it.part_id) {
           const lotsRes = await api.getInwardLots(partyIdStr, it.part_id, ch.id, currentWorkshop);
           const allLots = lotsRes.data || [];
-          const lots = allLots.filter(l => 
-            Number(l.available_stock) > 0 || 
+          const lots = allLots.filter(l =>
+            Number(l.available_stock) > 0 ||
             (it.inward_item_id && String(l.inward_item_id) === String(it.inward_item_id)) ||
             (it.inward_challan_no && l.inward_challan_no === it.inward_challan_no)
           );
           lotsMap[idx] = lots;
-          const matchingLot = lots.find(l => 
+          const matchingLot = lots.find(l =>
             (it.inward_item_id && String(l.inward_item_id) === String(it.inward_item_id)) ||
             (it.inward_challan_no && l.inward_challan_no === it.inward_challan_no)
           );
@@ -588,18 +588,18 @@ export default function OutwardChallans({
       process_carried_out: 'CNC TURNING',
       remarks: '',
       items: [
-        { 
-          part_id: '', 
+        {
+          part_id: '',
           inward_item_id: '',
           inward_challan_no: '',
           challan_date: '',
-          heat_no: '', 
+          heat_no: '',
           available_challan_stock: null,
-          quantity: '', 
+          quantity: '',
           machine_rejection: '0',
           forging_rejection: '0',
-          waste_quantity: '0', 
-          rate: '', 
+          waste_quantity: '0',
+          rate: '',
           amount: 0,
           unit: 'NOS'
         }
@@ -651,7 +651,7 @@ export default function OutwardChallans({
 
   return (
     <div className="space-y-6">
-      
+
       {/* Page Header */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -814,7 +814,7 @@ export default function OutwardChallans({
       {showCreateModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[96vh]">
-            
+
             {/* Modal Header */}
             <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between border-b border-slate-800">
               <div>
@@ -827,7 +827,7 @@ export default function OutwardChallans({
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {editingChallanId 
+                  {editingChallanId
                     ? 'Modify dispatch quantities, rejections, or lot items'
                     : 'Dispatch against specific Inward Challan lots with dynamic Heat Number & Rate'}
                 </p>
@@ -966,28 +966,26 @@ export default function OutwardChallans({
                   <div className="p-4 space-y-4 bg-slate-50/50">
                     {formData.items.map((item, idx) => {
                       const lots = inwardLotsByRow[idx] || [];
-                      const isStockExceeded = item.available_challan_stock !== null && 
+                      const isStockExceeded = item.available_challan_stock !== null &&
                         (parseFloat(item.quantity || 0) + parseFloat(item.waste_quantity || 0)) > item.available_challan_stock;
 
                       return (
-                        <div 
-                          key={idx} 
-                          className={`p-4 bg-white border rounded-xl shadow-xs space-y-3 transition ${
-                            isStockExceeded ? 'border-rose-300 ring-1 ring-rose-200' : 'border-slate-200'
-                          }`}
+                        <div
+                          key={idx}
+                          className={`p-4 bg-white border rounded-xl shadow-xs space-y-3 transition ${isStockExceeded ? 'border-rose-300 ring-1 ring-rose-200' : 'border-slate-200'
+                            }`}
                         >
                           {/* Row Top Bar */}
                           <div className="flex items-center justify-between pb-2 border-b border-slate-100 text-xs">
                             <span className="font-semibold text-slate-700">Item #{idx + 1}</span>
-                            
+
                             {/* Available Stock on this selected Inward Challan */}
                             {item.available_challan_stock !== null && (
                               <div className="flex items-center space-x-2">
-                                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full tabular-nums ${
-                                  isStockExceeded 
-                                    ? 'bg-rose-50 text-rose-700 border border-rose-200 font-mono' 
+                                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full tabular-nums ${isStockExceeded
+                                    ? 'bg-rose-50 text-rose-700 border border-rose-200 font-mono'
                                     : 'bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono'
-                                }`}>
+                                  }`}>
                                   Available on Inward Ch. #{item.inward_challan_no}: {item.available_challan_stock} {item.unit || 'NOS'}
                                 </span>
                               </div>
@@ -1006,7 +1004,7 @@ export default function OutwardChallans({
 
                           {/* Grid 1: Part & Inward Challan Dropdown */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            
+
                             {/* Part Dropdown */}
                             <div>
                               <label className="block text-xs font-medium text-slate-700 mb-1.5">
@@ -1020,8 +1018,8 @@ export default function OutwardChallans({
                               >
                                 <option value="">-- Select Component --</option>
                                 {partyParts.map(p => (
-                                  <option 
-                                    key={p.part_id} 
+                                  <option
+                                    key={p.part_id}
                                     value={p.part_id}
                                     disabled={!editingChallanId && Number(p.available_stock || 0) <= 0}
                                   >
@@ -1044,11 +1042,11 @@ export default function OutwardChallans({
                                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white font-medium disabled:bg-slate-100 disabled:text-slate-400"
                               >
                                 <option value="">
-                                  {!item.part_id 
-                                    ? "Select part first" 
-                                    : (lots.length > 0 
-                                        ? "-- Choose Inward Challan --" 
-                                        : "-- No Inward Lots with Available Stock --")}
+                                  {!item.part_id
+                                    ? "Select part first"
+                                    : (lots.length > 0
+                                      ? "-- Choose Inward Challan --"
+                                      : "-- No Inward Lots with Available Stock --")}
                                 </option>
                                 {lots.map((lot, lIdx) => {
                                   const keyVal = lot.lot_key || `${lot.inward_challan_id}_${lot.inward_item_id || lIdx}`;
@@ -1065,7 +1063,7 @@ export default function OutwardChallans({
 
                           {/* Grid 2: Line items inputs */}
                           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 pt-1">
-                            
+
                             {/* Heat Number */}
                             <div>
                               <label className="block text-xs font-medium text-slate-700 mb-1.5">Heat Number</label>
@@ -1117,11 +1115,10 @@ export default function OutwardChallans({
                                 placeholder="0"
                                 value={item.quantity}
                                 onChange={(e) => handleQtyChange(idx, 'quantity', e.target.value)}
-                                className={`w-full px-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 font-mono tabular-nums font-semibold ${
-                                  isStockExceeded 
-                                    ? 'border-rose-400 bg-rose-50 text-rose-900 focus:ring-rose-500/20' 
+                                className={`w-full px-2.5 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 font-mono tabular-nums font-semibold ${isStockExceeded
+                                    ? 'border-rose-400 bg-rose-50 text-rose-900 focus:ring-rose-500/20'
                                     : 'border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/20'
-                                }`}
+                                  }`}
                               />
                             </div>
 
