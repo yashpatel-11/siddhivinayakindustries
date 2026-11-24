@@ -623,11 +623,21 @@ export default function OutwardChallans({
     }
   };
 
-  const filteredChallans = challans.filter(ch =>
-    ch.challan_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (ch.party_name && ch.party_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (ch.vehicle_no && ch.vehicle_no.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredChallans = challans.filter(ch => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const partMatch = (ch.items || []).some(it => 
+      (it.part_no && it.part_no.toLowerCase().includes(q)) ||
+      (it.part_description && it.part_description.toLowerCase().includes(q))
+    );
+    return (
+      (ch.challan_no && ch.challan_no.toLowerCase().includes(q)) ||
+      (ch.party_name && ch.party_name.toLowerCase().includes(q)) ||
+      (ch.part_nos && ch.part_nos.toLowerCase().includes(q)) ||
+      partMatch ||
+      (ch.vehicle_no && ch.vehicle_no.toLowerCase().includes(q))
+    );
+  });
 
   const calculateFormTotalQty = () => {
     return formData.items.reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
@@ -687,7 +697,7 @@ export default function OutwardChallans({
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by Challan No, Consignee Name, Vehicle No..."
+            placeholder="Search by Challan No, Consignee Name, Part No..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -706,7 +716,7 @@ export default function OutwardChallans({
               <tr className="bg-slate-50/80 text-slate-600 text-xs uppercase font-semibold tracking-wider border-b border-slate-200">
                 <th className="py-3 px-4">Challan No & Date</th>
                 <th className="py-3 px-4">Consignee / Customer</th>
-                <th className="py-3 px-4">Vehicle & E-Way Bill</th>
+                <th className="py-3 px-4">Part No</th>
                 <th className="py-3 px-4">Process Carried Out</th>
                 <th className="py-3 px-4 text-right">Dispatched Qty</th>
                 <th className="py-3 px-4 text-right">M/C Rej</th>
@@ -735,9 +745,17 @@ export default function OutwardChallans({
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4 text-xs font-mono text-slate-600">
-                      <div>Veh: {ch.vehicle_no || 'N/A'}</div>
-                      <div>EWB: {ch.eway_bill_no || 'N/A'}</div>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold font-mono text-slate-900 text-xs">
+                        {ch.part_nos || (ch.items && ch.items.length > 0 
+                          ? Array.from(new Set(ch.items.map(it => it.part_no || it.part_description).filter(Boolean))).join(', ') 
+                          : (ch.part_no || '-'))}
+                      </div>
+                      {ch.items && ch.items.length === 1 && ch.items[0].part_description && (
+                        <div className="text-[11px] text-slate-500 truncate max-w-[180px]">
+                          {ch.items[0].part_description}
+                        </div>
+                      )}
                     </td>
 
                     <td className="py-3.5 px-4 text-xs font-medium text-indigo-700 uppercase">

@@ -51,10 +51,12 @@ switch ($method) {
                     COALESCE(SUM(oi.waste_quantity), 0) as total_waste,
                     COALESCE(SUM(oi.machine_rejection), 0) as total_machine_rejection,
                     COALESCE(SUM(oi.forging_rejection), 0) as total_forging_rejection,
-                    COALESCE(SUM(oi.amount), 0) as total_amount
+                    COALESCE(SUM(oi.amount), 0) as total_amount,
+                    GROUP_CONCAT(DISTINCT prt.part_no ORDER BY prt.part_no SEPARATOR ', ') as part_nos
                 FROM outward_challans oc
                 JOIN parties p ON oc.party_id = p.id
                 LEFT JOIN outward_items oi ON oc.id = oi.outward_id
+                LEFT JOIN parts prt ON oi.part_id = prt.id
                 WHERE oc.workshop = :ws
                 GROUP BY oc.id
                 ORDER BY oc.challan_date DESC, oc.id DESC

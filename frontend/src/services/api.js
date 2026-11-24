@@ -322,12 +322,16 @@ class LocalDataStore {
         }
       });
 
-      // Auto-repair: Ensure all inward items have unique IDs across all inwards
+      // Auto-repair: Ensure all inward items have unique IDs across all inwards, and attach part_nos
       let maxItemId = 0;
       const seenItemIds = new Set();
       this.inwards.forEach(inv => {
         if (Array.isArray(inv.items)) {
           inv.items.forEach(it => {
+            if (!it.part_no && it.part_id) {
+              const pt = this.parts.find(p => Number(p.id) === Number(it.part_id));
+              if (pt) it.part_no = pt.part_no;
+            }
             if (!it.id || seenItemIds.has(it.id)) {
               maxItemId++;
               it.id = maxItemId;
@@ -336,6 +340,19 @@ class LocalDataStore {
               if (Number(it.id) > maxItemId) maxItemId = Number(it.id);
             }
           });
+          inv.part_nos = Array.from(new Set(inv.items.map(it => it.part_no).filter(Boolean))).join(', ');
+        }
+      });
+
+      this.outwards.forEach(out => {
+        if (Array.isArray(out.items)) {
+          out.items.forEach(it => {
+            if (!it.part_no && it.part_id) {
+              const pt = this.parts.find(p => Number(p.id) === Number(it.part_id));
+              if (pt) it.part_no = pt.part_no;
+            }
+          });
+          out.part_nos = Array.from(new Set(out.items.map(it => it.part_no).filter(Boolean))).join(', ');
         }
       });
 
@@ -812,6 +829,7 @@ class LocalDataStore {
       remarks: data.remarks || '',
       total_quantity: totQty,
       total_amount: totAmt,
+      part_nos: Array.from(new Set(items.map(it => it.part_no).filter(Boolean))).join(', '),
       items
     };
 
@@ -960,6 +978,7 @@ class LocalDataStore {
       remarks: data.remarks || '',
       total_quantity: totQty,
       total_amount: totAmt,
+      part_nos: Array.from(new Set(items.map(it => it.part_no).filter(Boolean))).join(', '),
       items
     };
 

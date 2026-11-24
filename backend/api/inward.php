@@ -138,10 +138,12 @@ switch ($method) {
                     p.gstin as party_gstin,
                     COUNT(ii.id) as total_items,
                     COALESCE(SUM(ii.quantity), 0) as total_quantity,
-                    COALESCE(SUM(ii.amount), 0) as total_amount
+                    COALESCE(SUM(ii.amount), 0) as total_amount,
+                    GROUP_CONCAT(DISTINCT prt.part_no ORDER BY prt.part_no SEPARATOR ', ') as part_nos
                 FROM inward_challans ic
                 JOIN parties p ON ic.party_id = p.id
                 LEFT JOIN inward_items ii ON ic.id = ii.inward_id
+                LEFT JOIN parts prt ON ii.part_id = prt.id
                 WHERE ic.workshop = :ws
                 GROUP BY ic.id
                 ORDER BY ic.challan_date DESC, ic.id DESC
